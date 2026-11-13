@@ -6,6 +6,8 @@
 
 import * as G from './geom.js';
 import * as IM from './imaging.js';
+import * as SH from './shape.js';
+import { Warper, mls, fadeAt } from './warp.js';
 
 const UNDO_MAX = 100;
 
@@ -24,16 +26,6 @@ export function partLabel(n) {
 /** 左右コピーのコピー先の側（中央のパーツはコピーできないため null） */
 export const copySide = (p) => OPPOSITE[p.side] || null;
 
-// ---------------- 形の変更の対象 ----------------
-export const TARGETS = [
-  { id: 'eyeL', name: '左アイホール', screen: '画面右側', side: 1, kind: 'eye', pair: 'eyeR' },
-  { id: 'eyeR', name: '右アイホール', screen: '画面左側', side: -1, kind: 'eye', pair: 'eyeL' },
-  { id: 'cheekL', name: '左頬のライン', screen: '画面右側', side: 1, kind: 'face', pair: 'cheekR' },
-  { id: 'cheekR', name: '右頬のライン', screen: '画面左側', side: -1, kind: 'face', pair: 'cheekL' },
-  { id: 'jaw', name: 'あごのライン', screen: '', side: 0, kind: 'face', pair: null },
-];
-export const targetLabel = (d) => (d.screen ? `${d.name}（${d.screen}）` : d.name);
-
 let seq = 1;
 
 export class Sim {
@@ -44,18 +36,22 @@ export class Sim {
     this.cap = cap;
     this.parts = [];
     this.sel = null;          // 編集中のパーツの id
-    this.targets = initTargets(cap);
+    this.shape = SH.initShape(cap); // 形の変更（取っ手・スライダーの値）
     this.undoStack = [];
     this.redoStack = [];
     this.ver = 1;             // 内容が変わるたびに増やす（描画のキャッシュの判定に使う）
-    this.deformVer = 1;
+    this.deformVer = 1;       // 形の変更が変わるたびに増やす
+    this.partsVer = 1;        // パーツの抽出をやり直した時点の deformVer（ドラッグ中は進めない）
+    this.warper = new Warper();
+    this._ctl = null; this._ctlVer = 0;
+    this._view = null; this._viewVer = 0;
     this._deformed = null; this._deformedVer = 0;
     this._full = null; this._fullVer = 0;
   }
 
   get ax() { return G.axis(this.cap.w, this.cap.h, this.cap.angle); }
   get refl() { return G.reflectM(this.ax); }
-  get hasContent() { return this.parts.length > 0 || this.targets.some((t) => !IM.gridIsZero(this.eff(t))); }
+  get hasContent() { return this.parts.length > 0 || SH.changed(this.shape, this.ax); }
   part(id) { return this.parts.find((p) => p.id === id) || null; }
   get selPart() { return this.part(this.sel); }
 
@@ -63,13 +59,13 @@ export class Sim {
   snapshot() {
     return {
       parts: this.parts.map((p) => ({ ...p, poly: p.poly.map((q) => q.slice()), t: { ...p.t }, pivot: p.pivot?.slice() || null, copy: p.copy ? structuredClone(p.copy) : null, _ex: undefined, _ox: undefined })),
-      targets: this.targets.map((t) => ({ ...t, own: { dx: t.own.dx.slice(), dy: t.own.dy.slice() }, mirror: t.mirror ? cloneMirror(t.mirror) : null, _eff: undefined })),
+      shape: SH.cloneShape(this.shape),
       sel: this.sel,
     };
   }
   restore(s) {
     this.parts = s.parts.map((p) => ({ ...p }));
-    this.targets = s.targets.map((t) => ({ ...t }));
+    this.shape = SH.cloneShape(s.shape);
     this.sel = this.part(s.sel) ? s.sel : (this.parts[this.parts.length - 1]?.id ?? null);
     this.touchDeform();
   }
@@ -85,118 +81,62 @@ export class Sim {
   redo() { if (!this.redoStack.length) return false; this.undoStack.push(this.snapshot()); this.restore(this.redoStack.pop()); return true; }
 
   touch() { this.ver++; }
-  touchDeform() { this.deformVer++; this.targets.forEach((t) => (t._eff = null)); this.parts.forEach((p) => { p._ex = null; p._ox = null; }); this.ver++; }
+  /**
+   * 形の変更が変わったとき。live（ドラッグ・スライダーの操作中）は画像の変形だけを描き直し、
+   * パーツの抽出は指を離したとき（settle）にやり直す（抽出は重いため）
+   */
+  touchDeform(live = false) {
+    this.deformVer++; this.ver++;
+    if (!live) this.settle();
+  }
+  /** パーツの抽出を、今の形の変更に合わせてやり直す */
+  settle() {
+    if (this.partsVer === this.deformVer) return;
+    this.partsVer = this.deformVer;
+    this.parts.forEach((p) => { p._ex = null; p._ox = null; });
+    this.ver++;
+  }
   /** 中心線の角度を変えたとき（取り込み画像に適用する場合）：中心線を基準にした計算をやり直す */
   setAngle(deg) { this.cap.angle = deg; this.touchDeform(); }
 
   // ---------------- 形の変更 ----------------
-  tdef(id) { return TARGETS.find((d) => d.id === id); }
-  target(id) { return this.targets.find((t) => t.id === id); }
-
-  /** 実際に当てる移動量の格子（左右コピーの反転を含む） */
-  eff(t) {
-    if (t._eff) return t._eff;
-    let g = t.own;
-    if (t.mirror?.from) {
-      // 反対側の対象からのコピー：コピー元の変形を中心線で反転したもの ＋ コピー後に加えた変形
-      const M = this.refl, src = t.mirror.snap;
-      const c = G.ap(M, [src.cx, src.cy]);
-      t.cx = c[0]; t.cy = c[1]; t.R = src.R;
-      g = IM.emptyGrid();
-      for (let j = 0; j < IM.GRID_N; j++) for (let i = 0; i < IM.GRID_N; i++) {
-        const k = j * IM.GRID_N + i, p = IM.nodePos(t, i, j);
-        const v = G.apv(M, IM.sampleRaw(src, src.g, ...G.ap(M, p)));
-        g.dx[k] = t.own.dx[k] + v[0]; g.dy[k] = t.own.dy[k] + v[1];
-      }
-    } else if (t.mirror?.side) {
-      // あごのライン：変形した側の半分を中心線で反転し、もう半分に当てる
-      const ax = this.ax, M = this.refl, s = t.mirror.side;
-      g = IM.emptyGrid();
-      for (let j = 0; j < IM.GRID_N; j++) for (let i = 0; i < IM.GRID_N; i++) {
-        const k = j * IM.GRID_N + i, p = IM.nodePos(t, i, j);
-        if (G.sideOf(ax, p) * s >= 0) { g.dx[k] = t.own.dx[k]; g.dy[k] = t.own.dy[k]; }
-        else { const v = G.apv(M, IM.sampleRaw(t, t.own, ...G.ap(M, p))); g.dx[k] = v[0]; g.dy[k] = v[1]; }
-      }
-    }
-    t._eff = g;
-    return g;
+  /** 変形の制御点（形の変更が変わったときだけ作り直す） */
+  controls() {
+    if (this._ctl && this._ctlVer === this.deformVer) return this._ctl;
+    this._ctl = SH.controls(this.shape, this.ax); this._ctlVer = this.deformVer;
+    return this._ctl;
   }
-  /** 点 p の変形による移動量（すべての対象の合計） */
+  /** 点 p の変形による移動量 */
   disp(p) {
-    let dx = 0, dy = 0;
-    for (const t of this.targets) {
-      const g = this.eff(t);
-      if (IM.gridIsZero(g)) continue;
-      const v = IM.sample(t, g, p[0], p[1]);
-      dx += v[0]; dy += v[1];
-    }
-    return [dx, dy];
+    const c = this.controls();
+    if (c.identity) return [0, 0];
+    const f = fadeAt(c.box, p[0], p[1]);
+    if (!f) return [0, 0];
+    const q = mls(c.P, c.Q, p[0], p[1]);
+    return [(q[0] - p[0]) * f, (q[1] - p[1]) * f];
   }
-  /** 形の変更を当てた画像 */
+  /** 表示用の変形した画像（WebGL の canvas。取り込み画像の上に重ねて描く。変形がなければ null） */
+  deformedView() {
+    const c = this.controls();
+    if (c.identity) return null;
+    if (this._view && this._viewVer === this.deformVer) return this._view;
+    this._view = this.warper.render(this.cap.canvas, c.P, c.Q, c.box); this._viewVer = this.deformVer;
+    return this._view;
+  }
+  /** 形の変更を当てた画像（2D の canvas。パーツの抽出に使う） */
   deformed() {
-    if (this._deformedVer === this.deformVer && this._deformed) return this._deformed;
-    const list = this.targets.map((t) => ({ t, g: this.eff(t) })).filter((x) => !IM.gridIsZero(x.g));
-    this._deformed = list.length ? IM.applyDeform(this.cap.canvas, list) : this.cap.canvas;
+    const view = this.deformedView();
+    if (!view) return this.cap.canvas;
+    if (this._deformed && this._deformedVer === this.deformVer) return this._deformed;
+    if (!this._deformed) this._deformed = IM.canvas(this.cap.w, this.cap.h);
+    const x = this._deformed.getContext('2d', { willReadFrequently: true });
+    x.drawImage(this.cap.canvas, 0, 0); x.drawImage(view, 0, 0);
     this._deformedVer = this.deformVer;
     return this._deformed;
   }
-  /** 影響範囲の中で、ドラッグした向きに輪郭を押し広げる・引き込む */
-  brush(t, at, delta, radius) {
-    const s2 = 2 * (radius / 2) ** 2;
-    for (let j = 0; j < IM.GRID_N; j++) for (let i = 0; i < IM.GRID_N; i++) {
-      const p = IM.nodePos(t, i, j), k = j * IM.GRID_N + i;
-      const d2 = (p[0] - at[0]) ** 2 + (p[1] - at[1]) ** 2;
-      const w = Math.exp(-d2 / s2);
-      if (w < 0.002) continue;
-      t.own.dx[k] = G.clamp(t.own.dx[k] + delta[0] * w, -t.R * 0.6, t.R * 0.6);
-      t.own.dy[k] = G.clamp(t.own.dy[k] + delta[1] * w, -t.R * 0.6, t.R * 0.6);
-    }
-    this.touchDeform();
-  }
-  /** アイホール全体の拡大縮小（ds：倍率の増減。0.05 で 5% 拡大） */
-  scaleTarget(t, ds) {
-    for (let j = 0; j < IM.GRID_N; j++) for (let i = 0; i < IM.GRID_N; i++) {
-      const p = IM.nodePos(t, i, j), k = j * IM.GRID_N + i;
-      t.own.dx[k] += (p[0] - t.cx) * ds * 0.6;
-      t.own.dy[k] += (p[1] - t.cy) * ds * 0.6;
-    }
-    this.touchDeform();
-  }
-  /** コピーで反転している対象を、今の見た目のまま自分の変形に固定する（範囲を動かすとき等） */
-  bakeMirror(t) {
-    if (!t.mirror) return;
-    const g = this.eff(t);
-    t.own = { dx: g.dx.slice(), dy: g.dy.slice() };
-    t.mirror = null; t._eff = null;
-  }
-  /** 範囲（中心・半径）を変える。変形は範囲に対する位置のまま保つ */
-  moveTarget(t, cx, cy, R) {
-    this.bakeMirror(t);
-    t.cx = cx; t.cy = cy; t.R = R;
-    this.touchDeform();
-  }
-  resetTarget(t) {
-    const d = initTargets(this.cap).find((x) => x.id === t.id);
-    t.own = IM.emptyGrid(); t.mirror = null; t.cx = d.cx; t.cy = d.cy; t.R = d.R;
-    // この対象からコピーしていた反対側は、コピーした時点の形を残す
-    this.touchDeform();
-  }
-  /** 左右コピー：反対側の同じ対象へ。あごのラインは side（+1 画面右側 / -1 画面左側）の半分をもう半分へ */
-  copyTarget(t, side) {
-    const d = this.tdef(t.id);
-    if (d.id === 'jaw') {
-      this.bakeMirror(t);
-      t.mirror = { side };
-    } else {
-      const dst = this.target(d.pair);
-      const g = this.eff(t);
-      dst.mirror = { from: t.id, snap: { cx: t.cx, cy: t.cy, R: t.R, g: { dx: g.dx.slice(), dy: g.dy.slice() } } };
-      dst.own = IM.emptyGrid();
-    }
-    this.touchDeform();
-  }
-  /** 変形がある対象（ミラーの「基準でない側の修正」の判定に使う） */
-  deformedTargets() { return this.targets.filter((t) => !IM.gridIsZero(this.eff(t))); }
+  /** 形の変更の対象ごとに変形があるもの（ミラーの「基準でない側の修正」・再開時の案内に使う） */
+  changedGroups() { return SH.GROUPS.filter((g) => SH.changed(this.shape, this.ax, g.id)).map((g) => g.id); }
+  changedSides() { return SH.changedSides(this.shape, this.ax); }
 
   // ---------------- パーツ ----------------
   /** 囲んだ範囲の側：'L'（ドールの左＝画面右側）/ 'R'（ドールの右＝画面左側）/ 'C'（中心線にかかる中央） */
@@ -233,11 +173,11 @@ export class Sim {
     this.touch();
   }
   /** 変形を当てた選択範囲 */
-  warp(poly) { return this.deformedTargets().length ? poly.map((q) => { const d = this.disp(q); return [q[0] + d[0], q[1] + d[1]]; }) : poly; }
+  warp(poly) { return this.controls().identity ? poly : poly.map((q) => { const d = this.disp(q); return [q[0] + d[0], q[1] + d[1]]; }); }
 
-  /** パーツのレイヤー（コピーしたパーツはコピー元の範囲から取り出す） */
+  /** パーツのレイヤー（コピーしたパーツはコピー元の範囲から取り出す）。形の変更の操作中は、操作前の抽出のまま使う */
   layerOf(p) {
-    const key = `${this.deformVer}`;
+    const key = `${this.partsVer}`;
     if (p._ex && p._exKey === key) return p._ex;
     const srcPoly = p.copy ? p.copy.poly : p.poly;
     const f = p.copy ? p.copy.feather : p.feather, s = p.copy ? p.copy.strength : p.strength;
@@ -248,7 +188,7 @@ export class Sim {
   /** 元の位置（コピーしたパーツはコピー先の範囲）の処理に使う画像 */
   originOf(p) {
     if (!p.copy) return this.layerOf(p);
-    const key = `${this.deformVer}`;
+    const key = `${this.partsVer}`;
     if (p._ox && p._oxKey === key) return p._ox;
     p._ox = IM.extract(this.deformed(), this.warp(this.destPoly(p)), p.feather, p.strength);
     p._oxKey = key;
@@ -317,14 +257,10 @@ export class Sim {
     const s = G.sideOf(this.ax, c);
     return Math.abs(s) < this.cap.guides.spacing * this.cap.w * 0.3 ? 0 : Math.sign(s);
   }
-  /** 形の変更の影響範囲と重なるパーツ */
+  /** 形の変更に合わせて動いたパーツ（選択範囲のどこかが 0.5px 以上動いたもの） */
   partsInDeform() {
-    const ts = this.deformedTargets();
-    if (!ts.length) return [];
-    return this.parts.filter((p) => {
-      const bb = G.bbox(p.copy ? p.copy.poly : p.poly);
-      return ts.some((t) => bb.x < t.cx + t.R && bb.x + bb.w > t.cx - t.R && bb.y < t.cy + t.R && bb.y + bb.h > t.cy - t.R);
-    });
+    if (this.controls().identity) return [];
+    return this.parts.filter((p) => (p.copy ? p.copy.poly : p.poly).some((q) => Math.hypot(...this.disp(q)) >= 0.5));
   }
 
   // ---------------- 描画 ----------------
@@ -335,8 +271,11 @@ export class Sim {
   render(ctx, V, before = false) {
     ctx.save();
     ctx.setTransform(...V);
-    ctx.drawImage(before ? this.cap.canvas : this.deformed(), 0, 0);
+    ctx.drawImage(this.cap.canvas, 0, 0);
     if (!before) {
+      // 変形した画像を重ねる（WebGL で描いた画像をそのまま使い、2D の画像への写しは作らない。ドラッグ中も速く描けるように）
+      const view = this.deformedView();
+      if (view) ctx.drawImage(view, 0, 0);
       const vis = this.parts.filter((p) => p.visible);
       for (const p of vis) {
         if (p.origin === 'keep') continue;
@@ -360,25 +299,4 @@ export class Sim {
     this._full = c; this._fullVer = this.ver;
     return c;
   }
-}
-
-function cloneMirror(m) {
-  if (m.side) return { side: m.side };
-  return { from: m.from, snap: { ...m.snap, g: { dx: m.snap.g.dx.slice(), dy: m.snap.g.dy.slice() } } };
-}
-
-/** 対象の影響範囲の初期位置：顔位置設定のガイド（目の高さの線・目頭マーク・フレームガイドの楕円）から決める */
-function initTargets(cap) {
-  const ax = G.axis(cap.w, cap.h, cap.angle), g = cap.guides;
-  const eye = (g.eyeY - 0.5) * cap.h, sp = g.spacing * cap.w;
-  const ry = (g.frame * cap.h) / 2, rx = ry * IM.FRAME_ASPECT;
-  const eyeW = sp * 0.95;
-  const mk = (id, along, side, R) => { const c = G.fromAxis(ax, along, side); return { id, cx: c[0], cy: c[1], R, own: IM.emptyGrid(), mirror: null, _eff: null }; };
-  return [
-    mk('eyeL', eye, sp / 2 + eyeW / 2, eyeW * 0.95),
-    mk('eyeR', eye, -(sp / 2 + eyeW / 2), eyeW * 0.95),
-    mk('cheekL', ry * 0.28, rx * 0.92, rx * 0.42),
-    mk('cheekR', ry * 0.28, -rx * 0.92, rx * 0.42),
-    mk('jaw', ry * 0.86, 0, rx * 0.55),
-  ];
 }

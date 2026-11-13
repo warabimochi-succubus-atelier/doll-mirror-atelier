@@ -256,23 +256,32 @@
             <select class="grow" id="t-sel" aria-label="対象"></select>
           </div>
           <div class="row">
-            <span class="lbl">ブラシ</span>
-            <input type="range" min="15" max="100" id="t-brush" aria-label="ブラシの大きさ">
+            <span class="lbl">操作</span>
+            <div class="seg" id="t-mode">
+              <button data-v="fit">位置合わせ<small>取っ手を輪郭に合わせる</small></button>
+              <button data-v="deform">変形<small>輪郭を動かす</small></button>
+            </div>
           </div>
-          <div class="row" id="t-size-row">
-            <span class="lbl">大きさ</span>
-            <div class="fine"><button class="btn" data-tsc="-1">−</button><button class="btn" data-tsc="1">＋</button></div>
-            <span class="hint" style="margin:0">アイホール全体</span>
+          <div class="row">
+            <span class="lbl">左右対称</span>
+            <button class="btn btn-ghost btn-s" id="t-sym" aria-pressed="true">ON</button>
+            <span class="hint grow" style="margin:0" id="t-sym-hint"></span>
           </div>
+          <div class="row" id="t-side-row" hidden>
+            <span class="lbl">変形する側</span>
+            <div class="seg" id="t-side"><button data-v="R">右<small>画面左側</small></button><button data-v="L">左<small>画面右側</small></button></div>
+          </div>
+          <p class="hint" id="t-hint"></p>
+          <div id="t-sliders"></div>
           <div class="row" style="align-items:flex-start">
-            <div class="pad" aria-label="輪郭を押す">
+            <div class="pad" aria-label="選んだ取っ手を動かす">
               <span></span><button data-push="0,-1">↑</button><span></span>
               <button data-push="-1,0">←</button><button class="c" id="t-step" title="微調整の量を切り替え">小</button><button data-push="1,0">→</button>
               <span></span><button data-push="0,1">↓</button><span></span>
             </div>
             <div class="grow" style="display:grid;gap:6px">
-              <p class="hint" style="margin:0">影響範囲の中をドラッグすると、その向きに輪郭が動きます。矢印は最後に触れた位置を押します。</p>
-              <div class="row"><span class="kind cut">削り</span><span class="kind putty">パテ盛り</span><span class="hint" style="margin:0">の目安を画面に表示</span></div>
+              <p class="hint" style="margin:0" id="t-handle"></p>
+              <div class="row"><span class="kind cut">削り</span><span class="kind putty">パテ盛り</span><span class="hint" style="margin:0">取っ手の色で目安を表示</span></div>
             </div>
           </div>
           <div class="row wrap" style="margin-top:8px">
@@ -280,13 +289,8 @@
             <button class="btn grow wrap-text" id="t-copy2" hidden></button>
           </div>
           <div class="row">
-            <button class="btn btn-ghost btn-s" id="t-area" aria-pressed="false" title="影響範囲をドラッグで動かします">範囲を動かす</button>
             <span class="grow"></span>
-            <button class="btn btn-ghost btn-s" id="t-reset">この対象をリセット</button>
-          </div>
-          <div class="row" id="t-area-row" hidden>
-            <span class="lbl">範囲の大きさ</span>
-            <div class="fine"><button class="btn" data-tr="-1">−</button><button class="btn" data-tr="1">＋</button></div>
+            <button class="btn btn-ghost btn-s" id="t-reset"></button>
           </div>
           <p class="hint warn" id="t-parts-note" hidden></p>
           <p class="hint">輪郭の位置・形の当たり確認用です。奥行き（高さ・膨らみ）と陰影の変化は再現しません。</p>

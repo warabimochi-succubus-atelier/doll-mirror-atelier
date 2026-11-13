@@ -1,4 +1,4 @@
-// 画像の処理：輪郭（エッジ）の抽出、鮮明さ・照明の左右差の判定、メイク成分の抽出、輪郭の変形
+// 画像の処理：輪郭（エッジ）の抽出、鮮明さ・照明の左右差の判定、メイク成分の抽出
 // 処理はすべて端末内で行う
 
 import { axis, sideOf, alongOf, bbox, clamp } from './geom.js';
@@ -228,88 +228,6 @@ function boxBlur(src, w, h, r) {
       out[y * w + x] = s / d;
       s += tmp[clamp(y + r + 1, 0, h - 1) * w + x] - tmp[clamp(y - r, 0, h - 1) * w + x];
     }
-  }
-  return out;
-}
-
-// ---------------- 輪郭の変形（形の変更） ----------------
-// 変形は対象ごとの「影響範囲」（中心 cx, cy・半径 R の円）の中だけに限る。
-// 影響範囲を覆う N×N の格子の各点に移動量（dx, dy）を持ち、間の点は補間する。
-// 影響範囲の縁に近づくほど移動量を弱め、範囲の外（ヘッドの他の部分）は変形しない。
-
-export const GRID_N = 21;
-
-export function emptyGrid() { return { dx: new Float32Array(GRID_N * GRID_N), dy: new Float32Array(GRID_N * GRID_N) }; }
-export const nodePos = (t, i, j) => [t.cx - t.R + (2 * t.R * i) / (GRID_N - 1), t.cy - t.R + (2 * t.R * j) / (GRID_N - 1)];
-
-/** 格子の移動量を点 (x, y) で補間する（縁の弱めは含まない）。範囲外は 0 */
-export function sampleRaw(t, g, x, y) {
-  const fx = ((x - (t.cx - t.R)) / (2 * t.R)) * (GRID_N - 1), fy = ((y - (t.cy - t.R)) / (2 * t.R)) * (GRID_N - 1);
-  if (fx < 0 || fy < 0 || fx > GRID_N - 1 || fy > GRID_N - 1) return [0, 0];
-  const i = Math.min(GRID_N - 2, Math.floor(fx)), j = Math.min(GRID_N - 2, Math.floor(fy));
-  const u = fx - i, v = fy - j, k = j * GRID_N + i;
-  const w00 = (1 - u) * (1 - v), w10 = u * (1 - v), w01 = (1 - u) * v, w11 = u * v;
-  return [
-    g.dx[k] * w00 + g.dx[k + 1] * w10 + g.dx[k + GRID_N] * w01 + g.dx[k + GRID_N + 1] * w11,
-    g.dy[k] * w00 + g.dy[k + 1] * w10 + g.dy[k + GRID_N] * w01 + g.dy[k + GRID_N + 1] * w11,
-  ];
-}
-/** 影響範囲の縁での弱め（中心〜半径の 70% は 1、縁で 0） */
-export function falloff(t, x, y) {
-  const r = Math.hypot(x - t.cx, y - t.cy) / t.R;
-  if (r >= 1) return 0;
-  if (r <= 0.7) return 1;
-  const q = (1 - r) / 0.3;
-  return q * q * (3 - 2 * q);
-}
-export function sample(t, g, x, y) {
-  const f = falloff(t, x, y);
-  if (!f) return [0, 0];
-  const [dx, dy] = sampleRaw(t, g, x, y);
-  return [dx * f, dy * f];
-}
-export const gridIsZero = (g) => !g.dx.some((v) => Math.abs(v) > 0.01) && !g.dy.some((v) => Math.abs(v) > 0.01);
-
-/**
- * 変形を画像に当てる（対象ごとに影響範囲の中だけ描き直す）
- * @param list [{ t: 影響範囲, g: 移動量の格子 }]
- */
-export function applyDeform(base, list) {
-  const out = canvas(base.width, base.height);
-  const ox = ctx2d(out, { willReadFrequently: true });
-  ox.drawImage(base, 0, 0);
-  for (const { t, g } of list) {
-    const x0 = clamp(Math.floor(t.cx - t.R), 0, base.width), y0 = clamp(Math.floor(t.cy - t.R), 0, base.height);
-    const x1 = clamp(Math.ceil(t.cx + t.R), 0, base.width), y1 = clamp(Math.ceil(t.cy + t.R), 0, base.height);
-    const w = x1 - x0, h = y1 - y0;
-    if (w < 2 || h < 2) continue;
-    // 移動量の分だけ外側の画素も読む
-    let m = 0;
-    for (let k = 0; k < g.dx.length; k++) m = Math.max(m, Math.abs(g.dx[k]), Math.abs(g.dy[k]));
-    m = Math.ceil(m) + 2;
-    const sx0 = Math.max(0, x0 - m), sy0 = Math.max(0, y0 - m);
-    const sw = Math.min(base.width, x1 + m) - sx0, sh = Math.min(base.height, y1 + m) - sy0;
-    const sd = ox.getImageData(sx0, sy0, sw, sh).data;
-    const dst = ox.getImageData(x0, y0, w, h);
-    const dd = dst.data;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const X = x0 + x + 0.5, Y = y0 + y + 0.5;
-        const f = falloff(t, X, Y);
-        if (!f) continue;
-        const [dx, dy] = sampleRaw(t, g, X, Y);
-        if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) continue;
-        // 出力の点 p には、p − 移動量 の位置の画素を持ってくる（ドラッグした向きに輪郭が動く）
-        const qx = clamp(X - dx * f - 0.5 - sx0, 0, sw - 1.001), qy = clamp(Y - dy * f - 0.5 - sy0, 0, sh - 1.001);
-        const ix = Math.floor(qx), iy = Math.floor(qy), u = qx - ix, v = qy - iy;
-        const k00 = (iy * sw + ix) * 4, k10 = k00 + 4, k01 = k00 + sw * 4, k11 = k01 + 4;
-        const o = (y * w + x) * 4;
-        for (let c = 0; c < 4; c++) {
-          dd[o + c] = (sd[k00 + c] * (1 - u) + sd[k10 + c] * u) * (1 - v) + (sd[k01 + c] * (1 - u) + sd[k11 + c] * u) * v;
-        }
-      }
-    }
-    ox.putImageData(dst, x0, y0);
   }
   return out;
 }

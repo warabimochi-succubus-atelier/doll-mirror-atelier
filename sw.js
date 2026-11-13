@@ -9,7 +9,7 @@ const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/favicon-32.png', './icons/favicon.ico', './icons/apple-touch-icon.png',
   './images/author-logo.webp',
-  './js/version.js', './js/app.js', './js/settings.js', './js/geom.js', './js/imaging.js', './js/camera.js', './js/sim.js', './js/ui.js',
+  './js/version.js', './js/app.js', './js/settings.js', './js/geom.js', './js/imaging.js', './js/camera.js', './js/sim.js', './js/shape.js', './js/warp.js', './js/ui.js',
 ];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))));
 self.addEventListener('activate', (e) => e.waitUntil(
