@@ -218,6 +218,9 @@ ul.plain { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-2); 
 .choice span { font-size: 12px; color: var(--ink-2); }
 .choice.danger b { color: var(--bad); }
 .dlg-body select { width: 100%; font-size: 16px; padding: 8px; }
+.help-steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; }
+.help-steps > li { margin-bottom: 6px; }
+.help-steps ul { margin: 2px 0 0; padding-left: 16px; color: var(--ink-2); font-size: 12px; }
 .dialog.about { width: min(480px, calc(100% - 24px)); }
 .about-body { padding: 28px 24px 20px; text-align: center; overflow-y: auto; }
 .about-icon { border-radius: 22px; box-shadow: 0 4px 16px rgba(60, 40, 45, .18); }

@@ -482,7 +482,7 @@ $('#btn-angle0').addEventListener('click', () => { settings.angle = 0; save(); u
 $$('[data-eye]').forEach((b) => b.addEventListener('click', () => { settings.eyeY = G.clamp(settings.eyeY + +b.dataset.eye, 0.15, 0.85); save(); }));
 $$('[data-sp]').forEach((b) => b.addEventListener('click', () => { settings.spacing = G.clamp(settings.spacing + +b.dataset.sp, 0.02, 0.45); save(); }));
 $('#btn-loupe').addEventListener('click', () => { S.face.loupe = !S.face.loupe; updateFace(); });
-$('#btn-face-help').addEventListener('click', () => { const d = $('#face-help'); d.open = !d.open; });
+$('#btn-face-help').addEventListener('click', () => choose({ title: '合わせ方', html: $('#face-help').innerHTML, cancel: '閉じる' }));
 $('#btn-face-done').addEventListener('click', () => back());
 
 /** 顔位置設定を閉じる前：角度を変えた場合に、既にある取り込み画像に適用するかを選ぶ。false なら閉じない */
