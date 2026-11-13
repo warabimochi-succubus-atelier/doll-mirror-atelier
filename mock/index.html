@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Doll Mirror Atelier 画面モック</title>
+  <meta name="theme-color" content="#B85C74">
+  <link rel="icon" href="../icons/source/icon-original.png">
+  <style>
+    /* 配色・文字・ボタンは doll-pigment-atelier に揃える */
+    :root {
+      --bg: #faf6f2; --surface: #ffffff; --surface-2: #f4ede8; --ink: #3a2e32; --ink-2: #7a6a6f;
+      --line: #e8dcd5; --accent: #b85c74; --accent-2: #f3dfe4; --good: #3d8b63; --ok: #b98a24; --bad: #c0503f;
+      --shadow: 0 1px 2px rgba(60, 40, 45, .06), 0 4px 16px rgba(60, 40, 45, .05);
+      --radius: 14px; color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1d181a; --surface: #262022; --surface-2: #2f282a; --ink: #f1e8ea; --ink-2: #b3a3a8;
+        --line: #3e3437; --accent: #e08ba1; --accent-2: #45303a; --shadow: none; color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1d181a; --surface: #262022; --surface-2: #2f282a; --ink: #f1e8ea; --ink-2: #b3a3a8;
+      --line: #3e3437; --accent: #e08ba1; --accent-2: #45303a; --shadow: none; color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 14px/1.6 "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    }
+    .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+    button, input, select { font: inherit; color: inherit; }
+    h2 { font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px; }
+
+    /* ---- モックのページ全体 ---- */
+    .page-head { max-width: 1240px; margin: 0 auto; padding: 24px 24px 8px; }
+    .page-head h1 { font-size: 20px; margin: 0 0 4px; }
+    .page-head p { margin: 0; color: var(--ink-2); font-size: 13px; }
+    .toc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .toc a { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); text-decoration: none; font-size: 12px; background: var(--surface); }
+    .toc a:hover { border-color: var(--accent); color: var(--accent); }
+    .gallery { max-width: 1240px; margin: 0 auto; padding: 16px 24px 80px; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 36px 24px; justify-items: center; }
+    .shot { width: 360px; max-width: 100%; scroll-margin-top: 16px; }
+    .shot-cap { margin: 0 0 10px; }
+    .shot-cap h2 { font-size: 15px; }
+    .shot-cap .no { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-2); color: var(--accent); font-size: 12px; }
+    .shot-cap p { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+    .shot.flash .phone { box-shadow: 0 0 0 4px var(--accent); }
+
+    /* ---- 端末の枠 ---- */
+    .phone {
+      position: relative; width: 360px; max-width: 100%; height: 760px; border-radius: 34px; border: 8px solid #1f1a1c;
+      overflow: hidden; background: var(--bg); display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(60,40,45,.18);
+      transition: box-shadow .3s;
+    }
+
+    /* ---- アプリのヘッダー（参考 PWA の topbar / brand を踏襲） ---- */
+    .topbar {
+      flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 12px; min-height: 52px;
+      background: var(--bg); border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-icon { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; flex: none; }
+    .brand-icon img, .about-icon img { display: block; width: 116%; height: 116%; margin: -8%; object-fit: cover; }
+    .brand-name { font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+    .brand-sub { font-size: 11px; color: var(--ink-2); line-height: 1; }
+    .back { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--ink-2); padding: 0 4px; cursor: pointer; }
+    .bar-title { font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .round-btn {
+      display: grid; place-items: center; width: 36px; height: 36px; flex: none;
+      border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink-2); cursor: pointer;
+    }
+    .round-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .ml-auto { margin-left: auto; }
+
+    /* ---- カメラ映像の領域 ---- */
+    .stage { position: relative; flex: 1; min-height: 0; background: #111; overflow: hidden; }
+    .stage > svg.feed { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .ov { position: absolute; z-index: 2; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+      background: rgba(20, 14, 16, .62); color: #fff; font-size: 12px; backdrop-filter: blur(6px); white-space: nowrap;
+    }
+    .pill.warn { background: rgba(185, 138, 36, .92); }
+    .pill.good { background: rgba(61, 139, 99, .9); }
+    .pill.bad { background: rgba(192, 80, 63, .92); }
+    .zoom { right: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
+    .zoom button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(20,14,16,.55); color: #fff; font-size: 12px; cursor: pointer; }
+    .zoom button.on { background: #fff; color: #222; border-color: #fff; font-weight: 700; }
+    .level { left: 10px; top: 10px; }
+    .level .bubble { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.7); position: relative; }
+    .level .bubble::before { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #6fd39a; }
+    .level .bubble::after { content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 1px dashed rgba(255,255,255,.6); }
+    .banner {
+      left: 10px; right: 10px; bottom: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.95); color: #3a2e32;
+      font-size: 12px; display: flex; gap: 8px; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    }
+    .banner .grow { flex: 1; }
+    .chips-top { left: 54px; right: 60px; top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* ---- 操作パネル ---- */
+    .panel { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 12px 12px; max-height: 52%; overflow-y: auto; }
+    .panel .row + .row { margin-top: 8px; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .row.wrap { flex-wrap: wrap; }
+    .grow { flex: 1; min-width: 0; }
+    .lbl { font-size: 12px; color: var(--ink-2); white-space: nowrap; min-width: 56px; }
+    .hint { font-size: 11px; color: var(--ink-2); margin: 6px 0 0; }
+    .hint.warn { color: var(--ok); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
+      cursor: pointer; white-space: nowrap; user-select: none; -webkit-user-select: none;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-ghost { background: transparent; }
+    .btn-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); background: transparent; }
+    .btn-s { padding: 4px 10px; font-size: 12px; }
+    .btn-block { width: 100%; }
+    .btn.on { background: var(--accent-2); border-color: var(--accent); color: var(--accent); }
+    .btn.hold:active, .btn.hold.pressing { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: 1; min-width: 0; }
+    .seg button { flex: 1; border: 0; background: transparent; padding: 6px 6px; font-size: 12px; cursor: pointer; color: var(--ink-2); line-height: 1.3; }
+    .seg button + button { border-left: 1px solid var(--line); }
+    .seg button.on { background: var(--accent); color: #fff; }
+    .seg button small { display: block; font-size: 10px; opacity: .85; }
+    input[type=range] { accent-color: var(--accent); width: 100%; }
+    .val { font-size: 12px; min-width: 40px; text-align: right; }
+    .nav3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .nav3 .btn { flex-direction: column; gap: 2px; padding: 8px 4px; font-size: 12px; }
+    .nav3 .btn svg { width: 22px; height: 22px; }
+    .fine { display: flex; gap: 4px; }
+    .fine .btn { padding: 4px 8px; font-size: 12px; min-width: 40px; }
+    .divider { height: 1px; background: var(--line); margin: 10px -12px; }
+    .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+    .swatch.on { box-shadow: 0 0 0 2px var(--accent); }
+    details.fold > summary { cursor: pointer; font-size: 12px; color: var(--ink-2); list-style: none; padding: 4px 0; }
+    details.fold > summary::before { content: "▸ "; }
+    details.fold[open] > summary::before { content: "▾ "; }
+
+    /* ---- シミュレーション ---- */
+    .tabs { display: flex; gap: 4px; padding: 6px 12px; background: var(--bg); border-bottom: 1px solid var(--line); flex: none; }
+    .tabs button { flex: 1; padding: 6px 12px; border-radius: 999px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
+    .tabs button.on { background: var(--accent); color: #fff; }
+    .simbar { flex: none; display: flex; gap: 6px; align-items: center; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+    .parts { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .part { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; white-space: nowrap; background: var(--surface); cursor: pointer; }
+    .part.on { border-color: var(--accent); background: var(--accent-2); color: var(--accent); }
+    .part .eye { font-size: 11px; opacity: .7; }
+    .part.off { opacity: .5; text-decoration: line-through; }
+    .pad { display: grid; grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(3, 30px); gap: 3px; }
+    .pad button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; cursor: pointer; font-size: 12px; padding: 0; }
+    .pad .c { font-size: 10px; color: var(--ink-2); }
+    .kind { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+    .kind.cut { background: #e8f0fb; color: #2f5f9c; }
+    .kind.putty { background: #fbefe3; color: #9a5a1c; }
+    .is-before .mod { display: none; }
+
+    /* ---- 設定 ---- */
+    .scroll { flex: 1; overflow-y: auto; padding: 12px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    .card h2 { margin-bottom: 8px; }
+    .badge { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-weight: 400; }
+    .set { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .set:first-of-type { border-top: 0; }
+    .set .grow small { display: block; font-size: 11px; color: var(--ink-2); line-height: 1.4; }
+    .switch { appearance: none; -webkit-appearance: none; width: 40px; height: 24px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; flex: none; transition: background .2s; margin: 0; }
+    .switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+    .switch:checked { background: var(--accent); }
+    .switch:checked::after { left: 19px; }
+    select { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; background: var(--surface); }
+    ul.plain { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-2); }
+
+    /* ---- ダイアログ（参考 PWA の dialog / about を踏襲） ---- */
+    .sheet-back { position: absolute; inset: 0; z-index: 20; background: rgba(40, 25, 30, .45); display: grid; place-items: center; padding: 16px; }
+    .dialog { width: 100%; border-radius: 18px; background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.25); overflow: hidden; }
+    .dlg-body { padding: 18px 18px 12px; }
+    .dlg-body h2 { font-size: 16px; margin-bottom: 8px; }
+    .dlg-body p { margin: 0 0 8px; font-size: 13px; color: var(--ink-2); }
+    .dlg-foot { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .choice { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); margin-top: 8px; cursor: pointer; }
+    .choice:hover { border-color: var(--accent); }
+    .choice b { display: block; font-size: 14px; }
+    .choice span { font-size: 12px; color: var(--ink-2); }
+    .about-body { padding: 26px 22px 18px; text-align: center; }
+    .about-icon { width: 88px; height: 88px; border-radius: 22px; overflow: hidden; margin: 0 auto; box-shadow: 0 4px 16px rgba(60, 40, 45, .18); }
+    .about-title { justify-content: center; font-size: 20px; margin-top: 14px; }
+    .about-ver { font-size: 12px; color: var(--ink-2); }
+    .about-desc { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
+    .about-author { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .about-label { font-size: 11px; color: var(--ink-2); letter-spacing: .1em; }
+    .about-logo { margin: 8px auto 6px; background: #fff; border-radius: 14px; padding: 4px; max-width: 360px; }
+    .about-logo img { display: block; width: 100%; height: auto; }
+    .about-name { font-weight: 700; }
+    .about-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+    .about-links .btn { text-decoration: none; color: var(--ink); }
+    dialog.real { padding: 0; border: 0; border-radius: 18px; width: min(420px, calc(100% - 24px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    dialog.real::backdrop { background: rgba(40, 25, 30, .4); backdrop-filter: blur(2px); }
+
+    .count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; }
+    .count .num { width: 120px; height: 120px; border-radius: 50%; background: rgba(20,14,16,.55); color: #fff; font-size: 64px; font-weight: 700; display: grid; place-items: center; border: 3px solid rgba(255,255,255,.8); }
+    .count p { position: absolute; bottom: 24px; margin: 0; }
+
+    .diagram { background: var(--surface-2); border-radius: 12px; padding: 6px; }
+    .diagram svg { display: block; width: 100%; height: auto; }
+
+    @media (max-width: 420px) {
+      .page-head { padding: 16px 16px 4px; }
+      .gallery { padding: 12px 16px 60px; grid-template-columns: 1fr; }
+      .shot { width: 100%; }
+      .phone { width: 100%; height: 720px; border-width: 6px; border-radius: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== 共通の図（カメラ映像に見立てたドールヘッド） ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="g-skin" cx="45%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#fbe9e1"/><stop offset=".7" stop-color="#f1d3c8"/><stop offset="1" stop-color="#dfb8ab"/>
+    </radialGradient>
+    <linearGradient id="g-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9d4d8"/><stop offset="1" stop-color="#b9b2b7"/>
+    </linearGradient>
+    <radialGradient id="g-iris" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#c86f8c"/><stop offset=".6" stop-color="#7d3a5c"/><stop offset="1" stop-color="#3b1d2e"/>
+    </radialGradient>
+    <clipPath id="clip-left"><rect x="0" y="0" width="180" height="640"/></clipPath>
+    <clipPath id="clip-right"><rect x="180" y="0" width="180" height="640"/></clipPath>
+
+    <!-- ヘッド（ドールの左眉＝画面右側の眉を少し高く描き、左右差を持たせている） -->
+    <symbol id="head" viewBox="0 0 360 640">
+      <rect width="360" height="640" fill="url(#g-bg)"/>
+      <rect x="142" y="440" width="76" height="200" rx="10" fill="#8c8287"/>
+      <path d="M58 292 C58 190 118 146 180 146 C242 146 302 190 302 292 C302 384 244 452 180 462 C116 452 58 384 58 292Z" fill="url(#g-skin)"/>
+      <!-- チーク -->
+      <ellipse cx="112" cy="372" rx="30" ry="16" fill="#f19aa6" opacity=".45"/>
+      <ellipse cx="250" cy="368" rx="30" ry="16" fill="#f19aa6" opacity=".45"/>
+      <!-- 眉 -->
+      <path d="M100 272 Q128 258 158 268" stroke="#9a6a58" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M202 260 Q232 246 262 258" stroke="#9a6a58" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <!-- アイホールとアイ -->
+      <ellipse cx="128" cy="318" rx="28" ry="26" fill="#3a2a2e"/>
+      <ellipse cx="128" cy="320" rx="22" ry="22" fill="url(#g-iris)"/>
+      <circle cx="120" cy="311" r="5" fill="#fff"/>
+      <ellipse cx="232" cy="318" rx="28" ry="26" fill="#3a2a2e"/>
+      <ellipse cx="232" cy="320" rx="22" ry="22" fill="url(#g-iris)"/>
+      <circle cx="224" cy="311" r="5" fill="#fff"/>
+      <!-- アイライン -->
+      <path d="M98 308 Q128 284 158 306" stroke="#3b2328" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M202 306 Q232 284 264 304" stroke="#3b2328" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- 鼻・口 -->
+      <path d="M176 372 Q180 377 184 372" stroke="#c99486" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M170 408 Q180 416 190 408" stroke="#d47c88" stroke-width="3" fill="#e49aa4" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- 輪郭のみ（エッジ）表示用 -->
+    <symbol id="head-edge" viewBox="0 0 360 640">
+      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M58 292 C58 190 118 146 180 146 C242 146 302 190 302 292 C302 384 244 452 180 462 C116 452 58 384 58 292Z"/>
+        <path d="M100 272 Q128 258 158 268"/><path d="M202 260 Q232 246 262 258"/>
+        <ellipse cx="128" cy="318" rx="28" ry="26"/><ellipse cx="232" cy="318" rx="28" ry="26"/>
+        <ellipse cx="128" cy="320" rx="22" ry="22"/><ellipse cx="232" cy="320" rx="22" ry="22"/>
+        <path d="M98 308 Q128 284 158 306"/><path d="M202 306 Q232 284 264 304"/>
+        <path d="M170 408 Q180 416 190 408"/>
+        <path d="M142 452 V640 M218 452 V640"/>
+      </g>
+    </symbol>
+
+    <!-- 中心線と合わせ用ガイド -->
+    <symbol id="guides" viewBox="0 0 360 640">
+      <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1.5" stroke-dasharray="8 6"/>
+      <line x1="40" y1="318" x2="320" y2="318" stroke="#ffd36b" stroke-width="1.2" stroke-dasharray="4 4"/>
+      <path d="M154 306 V330 M206 306 V330" stroke="#ffd36b" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="180" cy="374" r="6" fill="none" stroke="#8fd3ff" stroke-width="1.5"/>
+      <rect x="168" y="404" width="24" height="12" rx="6" fill="none" stroke="#8fd3ff" stroke-width="1.5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="page-head">
+  <h1>Doll Mirror Atelier 画面モック</h1>
+  <p>仕様書 v0.11 をもとにした画面のモックです（縦向きのスマートフォン）。カメラ映像は図で代用しています。ボタンの一部は押すと動きます。</p>
+  <nav class="toc" id="toc"></nav>
+</header>
+
+<main class="gallery">
+
+  <!-- ===================== 1. カメラ（ホーム） ===================== -->
+  <section class="shot" id="s-home" data-title="カメラ（ホーム）">
+    <div class="shot-cap">
+      <h2><span class="no">1</span>カメラ（ホーム）</h2>
+      <p>起動時の画面。背面カメラの映像を常に表示し、補助（水準器・フレームガイド・照明の左右差・ピンぼけ）とズームを重ねる。起動時は中心線の確認を案内する。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon"><img src="../icons/source/icon-original.png" alt=""></div>
+          <div>
+            <div class="brand-name">Doll Mirror Atelier</div>
+            <div class="brand-sub" data-app-version></div>
+          </div>
+        </div>
+        <button class="round-btn ml-auto" data-goto="s-settings" title="設定" aria-label="設定">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 2.8l1.6 2.3 2.7-.6.6 2.7 2.3 1.6-1.2 2.5 1.2 2.5-2.3 1.6-.6 2.7-2.7-.6L12 21.2l-1.6-2.3-2.7.6-.6-2.7-2.3-1.6L6 12.7 4.8 10.2l2.3-1.6.6-2.7 2.7.6z"/></svg>
+        </button>
+        <button class="round-btn" data-about title="このアプリについて" aria-label="このアプリについて">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="7.6" r="1.2" fill="currentColor"/><path d="M12 10.8v6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
+          <use href="#head"/>
+          <ellipse cx="180" cy="304" rx="132" ry="168" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="3 5" opacity=".8"/>
+          <use href="#guides" opacity=".75"/>
+        </svg>
+        <div class="ov level" title="水準器"><div class="bubble"></div></div>
+        <div class="ov chips-top">
+          <span class="pill warn">ドールの右側（画面左側）が暗めです</span>
+          <span class="pill good">ピント良好</span>
+        </div>
+        <div class="ov zoom" role="group" aria-label="ズーム">
+          <button>1×</button><button class="on">2×</button><button>3×</button>
+        </div>
+        <div class="ov banner">
+          <span class="grow">ヘッドが中心線に合っているか確認してください</span>
+          <button class="btn btn-primary btn-s" data-goto="s-face">顔位置設定へ</button>
+          <button class="back" style="font-size:16px" aria-label="閉じる">×</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="nav3">
+          <button class="btn" data-goto="s-face">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><ellipse cx="12" cy="12" rx="7" ry="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5h2M14 10.5h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            顔位置設定
+          </button>
+          <button class="btn btn-primary" data-goto="s-count">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M10 6H5v12h5M14 6h5v12h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            ミラー
+          </button>
+          <button class="btn" data-goto="s-simstart">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M11 15q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M14 10l2 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            シミュレーション
+          </button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <span class="lbl">輪郭表示</span>
+          <span class="hint" style="margin:0">前回の取り込み画像がありません</span>
+          <button class="btn btn-ghost btn-s ml-auto" disabled>重ねる</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-ghost btn-s" data-goto="s-setup">設置ガイド</button>
+          <span class="hint" style="margin:0">補助の ON / OFF は設定から</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. カメラの利用許可の案内 ===================== -->
+  <section class="shot" id="s-perm" data-title="カメラの利用許可">
+    <div class="shot-cap">
+      <h2><span class="no">2</span>カメラの利用許可の案内（初回）</h2>
+      <p>初回のカメラ起動前に、許可が必要な理由と、ブラウザに尋ねられたときの操作を案内する。許可されなかった場合は設定から許可する方法を表示する。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon"><img src="../icons/source/icon-original.png" alt=""></div>
+          <div><div class="brand-name">Doll Mirror Atelier</div><div class="brand-sub" data-app-version></div></div>
+        </div>
+      </header>
+      <div class="stage" style="background:#2a2326"></div>
+      <div class="sheet-back">
+        <div class="dialog">
+          <div class="dlg-body">
+            <h2>カメラを使います</h2>
+            <p>このアプリは、スタンドに固定したドールヘッドを背面カメラで映し続けて使います。カメラの映像・取り込んだ画像は端末の外に送らず、保存もしません。</p>
+            <p>次にブラウザから「カメラの使用を許可しますか」と尋ねられたら、<b>許可</b>を選んでください。</p>
+            <p class="hint">ホーム画面から起動した場合、起動のたびに尋ねられることがあります。</p>
+          </div>
+          <div class="dlg-foot">
+            <span class="grow"></span>
+            <button class="btn btn-primary" data-goto="s-home">カメラを起動</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. 顔位置設定 ===================== -->
+  <section class="shot" id="s-face" data-title="顔位置設定">
+    <div class="shot-cap">
+      <h2><span class="no">3</span>顔位置設定</h2>
+      <p>中心線は映像の中央に固定。ヘッド（またはスタンド）を動かして、目頭マーク・目の高さの線・鼻先と口の目安に合わせる。中心線は角度だけ微調整できる。ルーペで重なりを確認する。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-face-close" aria-label="戻る">‹</button>
+        <div class="bar-title">顔位置設定</div>
+        <button class="btn btn-ghost btn-s">合わせ方</button>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
+          <use href="#head"/>
+          <g transform="rotate(0.4 180 320)"><use href="#guides"/></g>
+          <!-- ルーペ -->
+          <g>
+            <clipPath id="loupe"><circle cx="288" cy="120" r="56"/></clipPath>
+            <g clip-path="url(#loupe)">
+              <rect x="232" y="64" width="112" height="112" fill="#ddd"/>
+              <g transform="translate(288 120) scale(2.4) translate(-158 -318)"><use href="#head" width="360" height="640"/><use href="#guides" width="360" height="640"/></g>
+            </g>
+            <circle cx="288" cy="120" r="56" fill="none" stroke="#fff" stroke-width="3"/>
+          </g>
+        </svg>
+        <div class="ov" style="left:10px;top:10px"><span class="pill">中心線の角度 <b class="mono">+0.4°</b></span></div>
+        <div class="ov" style="left:10px;bottom:10px;right:10px"><span class="pill" style="white-space:normal">画面を操作した後は、揺れが収まってから重なりを確かめてください</span></div>
+      </div>
+      <div class="panel">
+        <div class="row">
+          <span class="lbl">中心線の角度</span>
+          <div class="fine">
+            <button class="btn">−1°</button><button class="btn">−0.2°</button><button class="btn">+0.2°</button><button class="btn">+1°</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="lbl"></span>
+          <button class="btn btn-ghost btn-s">垂直に戻す</button>
+          <span class="hint" style="margin:0">±10° まで</span>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <span class="lbl">目の高さ</span>
+          <div class="fine"><button class="btn">▲ 大</button><button class="btn">▲</button><button class="btn">▼</button><button class="btn">▼ 大</button></div>
+        </div>
+        <div class="row">
+          <span class="lbl">目頭の間隔</span>
+          <div class="fine"><button class="btn">狭く</button><button class="btn">広く</button></div>
+          <button class="btn btn-ghost btn-s ml-auto on">ルーペ</button>
+        </div>
+        <details class="fold" style="margin-top:6px">
+          <summary>合わせ方</summary>
+          <ol class="hint" style="padding-left:18px;margin-top:0">
+            <li>目頭マークの間隔と目の高さの線を、目頭のおおよその位置に合わせる</li>
+            <li>ヘッドを左右に動かし、左右の目頭をマークに対称に重ねる</li>
+            <li>目頭・鼻先・口の中央が中心線に並ぶよう傾き・向きを直す（目頭が線から上下にずれる＝傾き、片方だけ外へずれる＝横向き）</li>
+            <li>わずかに残る傾きは中心線の角度で合わせる</li>
+          </ol>
+        </details>
+        <button class="btn btn-primary btn-block" data-goto="s-face-close" style="margin-top:6px">完了</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. 顔位置設定を閉じる（角度の適用） ===================== -->
+  <section class="shot" id="s-face-close" data-title="角度の適用">
+    <div class="shot-cap">
+      <h2><span class="no">4</span>中心線の角度を変えて閉じるとき</h2>
+      <p>取り込み画像がある状態で角度を変えた場合のみ表示。ヘッドを動かしたかどうかで、既存の取り込み画像に角度を適用するか選ぶ。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" aria-label="戻る">‹</button>
+        <div class="bar-title">顔位置設定</div>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/><use href="#guides"/></svg>
+      </div>
+      <div class="sheet-back">
+        <div class="dialog">
+          <div class="dlg-body">
+            <h2>取り込み画像にも適用しますか</h2>
+            <p>中心線の角度を <b class="mono">0.0° → +0.4°</b> に変えました。ミラー・シミュレーションの取り込み画像があります。</p>
+            <button class="choice" data-goto="s-home"><b>取り込み画像にも適用する</b><span>ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。</span></button>
+            <button class="choice" data-goto="s-home"><b>適用しない</b><span>ヘッドを付け直した・スタンドを動かした場合。取り込み画像はそのまま使います。取り直しをおすすめします。</span></button>
+          </div>
+          <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost">顔位置設定に戻る</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. 取り込み（待ち時間） ===================== -->
+  <section class="shot" id="s-count" data-title="取り込み">
+    <div class="shot-cap">
+      <h2><span class="no">5</span>映像の取り込み（待ち時間）</h2>
+      <p>ミラー・シミュレーションの開始時と取り直し時。ボタン操作の揺れを避けるため、待ち時間（初期値 1秒）のカウントの後に1コマを取り込み、ピンぼけ・ブレを確かめる。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-home" aria-label="やめる">‹</button>
+        <div class="bar-title">ミラー</div>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/></svg>
+        <div class="count">
+          <div class="num mono">1</div>
+          <p><span class="pill">端末に触れずにお待ちください</span></p>
+        </div>
+      </div>
+      <div class="panel">
+        <p class="hint" style="margin:0">取り込んだ画像がぼやけていた場合：</p>
+        <div class="row" style="margin-top:6px">
+          <span class="pill bad" style="font-size:12px">画像がぼやけています</span>
+          <button class="btn btn-primary btn-s ml-auto">取り直す</button>
+          <button class="btn btn-ghost btn-s" data-goto="s-mirror">このまま使う</button>
+        </div>
+        <button class="btn btn-block" style="margin-top:10px" data-goto="s-mirror">（モック）取り込み完了 → ミラーへ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. ミラー ===================== -->
+  <section class="shot" id="s-mirror" data-title="ミラー">
+    <div class="shot-cap">
+      <h2><span class="no">6</span>ミラー</h2>
+      <p>ライブ映像の上に、取り込み画像の基準の側を中心線で反転して、反対側の半分にだけ重ねる。透明度を上げると下のライブ映像が透け、ガイドにして描ける。</p>
+    </div>
+    <div class="phone" id="mirror-phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
+        <div class="bar-title">ミラー</div>
+        <button class="btn btn-ghost btn-s" data-goto="s-face">顔位置設定</button>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
+          <use href="#head"/>
+          <!-- 反転した基準側 -->
+          <g id="m-overlay" clip-path="url(#clip-left)" opacity="1">
+            <g id="m-flip" transform="matrix(-1 0 0 1 360 0)">
+              <use id="m-img" href="#head"/>
+              <use id="m-edge" href="#head-edge" style="color:#5cf2ff" hidden/>
+            </g>
+          </g>
+          <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1.5" stroke-dasharray="8 6"/>
+        </svg>
+        <div class="ov" style="left:10px;top:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+          <span class="pill" id="m-label">左基準：ドールの左顔（画面右側）を反転</span>
+          <span class="pill">修正前</span>
+        </div>
+        <div class="ov banner" style="bottom:10px">
+          <span class="grow">ヘッドの位置が変わっている場合は取り直してください（「輪郭のみ」で重なりを確かめられます）</span>
+          <button class="back" style="font-size:16px" aria-label="閉じる">×</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="row">
+          <span class="lbl">基準の側</span>
+          <div class="seg" id="m-basis">
+            <button data-v="right">右基準<small>ドールの右（画面左）</small></button>
+            <button class="on" data-v="left">左基準<small>ドールの左（画面右）</small></button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="lbl">表示する画像</span>
+          <div class="seg"><button class="on">修正前</button><button>修正後</button></div>
+        </div>
+        <div class="row">
+          <span class="lbl">表示方法</span>
+          <div class="seg" id="m-mode"><button class="on" data-v="img">画像</button><button data-v="edge">輪郭のみ</button></div>
+          <div class="row" id="m-colors" style="gap:4px" hidden>
+            <button class="swatch on" style="background:#5cf2ff" data-c="#5cf2ff" aria-label="水色"></button>
+            <button class="swatch" style="background:#ff5ca8" data-c="#ff5ca8" aria-label="ピンク"></button>
+            <button class="swatch" style="background:#fff200" data-c="#fff200" aria-label="黄"></button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="lbl">透明度</span>
+          <input type="range" min="0" max="100" value="0" id="m-alpha" aria-label="透明度">
+          <span class="val mono" id="m-alpha-v">0%</span>
+        </div>
+        <p class="hint" style="margin-top:0">0%：完全対称で左右差を確認 ／ 上げる：ライブ映像が透けて、反対側を描くガイドに</p>
+        <details class="fold">
+          <summary>位置の微調整</summary>
+          <div class="row wrap" style="gap:4px">
+            <div class="fine"><button class="btn">←</button><button class="btn">→</button><button class="btn">↑</button><button class="btn">↓</button></div>
+            <div class="fine"><button class="btn">縮小</button><button class="btn">拡大</button><button class="btn">⟲</button><button class="btn">⟳</button></div>
+            <button class="btn btn-ghost btn-s">元に戻す</button>
+          </div>
+        </details>
+        <div class="row" style="margin-top:6px">
+          <button class="btn grow" data-goto="s-count">取り直し</button>
+          <button class="btn btn-primary grow" data-goto="s-simstart">シミュレーションへ</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 7. ミラー（修正後） ===================== -->
+  <section class="shot" id="s-mirror-after" data-title="ミラー（修正後）">
+    <div class="shot-cap">
+      <h2><span class="no">7</span>ミラー（修正後・輪郭のみ）</h2>
+      <p>シミュレーションから移った場合は修正後を初期表示。基準でない側の修正は表示されないこと、取り込み後のメイクの進み具合は反映されないことを表示する。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-sim" aria-label="戻る">‹</button>
+        <div class="bar-title">ミラー</div>
+        <button class="btn btn-ghost btn-s">顔位置設定</button>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
+          <use href="#head"/>
+          <g clip-path="url(#clip-left)">
+            <g transform="matrix(-1 0 0 1 360 0)" style="color:#ff5ca8">
+              <use href="#head-edge"/>
+              <!-- 修正後：左眉（画面右側）を下げた結果 -->
+              <path d="M202 268 Q232 254 262 266" stroke="#ff5ca8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            </g>
+          </g>
+          <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1.5" stroke-dasharray="8 6"/>
+        </svg>
+        <div class="ov" style="left:10px;top:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+          <span class="pill">左基準・修正後・輪郭のみ</span>
+          <span class="pill warn">基準でない側の修正は表示されません</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="row">
+          <span class="lbl">基準の側</span>
+          <div class="seg"><button>右基準<small>ドールの右（画面左）</small></button><button class="on">左基準<small>ドールの左（画面右）</small></button></div>
+        </div>
+        <div class="row">
+          <span class="lbl">表示する画像</span>
+          <div class="seg"><button>修正前</button><button class="on">修正後</button></div>
+        </div>
+        <div class="row">
+          <span class="lbl">表示方法</span>
+          <div class="seg"><button>画像</button><button class="on">輪郭のみ</button></div>
+          <div class="row" style="gap:4px">
+            <button class="swatch" style="background:#5cf2ff" aria-label="水色"></button>
+            <button class="swatch on" style="background:#ff5ca8" aria-label="ピンク"></button>
+            <button class="swatch" style="background:#fff200" aria-label="黄"></button>
+          </div>
+        </div>
+        <p class="hint">修正後の画像はシミュレーション開始時（14:32）の取り込み画像がもとです。その後に進めたメイク・削りは反映されません。</p>
+        <div class="row" style="margin-top:8px">
+          <button class="btn grow">取り直し</button>
+          <button class="btn btn-primary grow" data-goto="s-sim">シミュレーションへ</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 8. シミュレーション開始 ===================== -->
+  <section class="shot" id="s-simstart" data-title="シミュレーション開始">
+    <div class="shot-cap">
+      <h2><span class="no">8</span>シミュレーションの開始（続きがあるとき）</h2>
+      <p>アプリを開いている間にシミュレーションを行っていた場合のみ表示。「取り直して新しく始める」はパーツ移動・形の変更と履歴を破棄するため、確認を挟む。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon"><img src="../icons/source/icon-original.png" alt=""></div>
+          <div><div class="brand-name">Doll Mirror Atelier</div><div class="brand-sub" data-app-version></div></div>
+        </div>
+      </header>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/></svg>
+      </div>
+      <div class="sheet-back">
+        <div class="dialog">
+          <div class="dlg-body">
+            <h2>シミュレーション</h2>
+            <p>前回のシミュレーション（パーツ 3つ・形の変更 1か所、14:32 に取り込み）があります。</p>
+            <button class="choice" data-goto="s-sim"><b>続きから</b><span>前回の取り込み画像と、パーツ移動・形の変更、取り消しの履歴をそのまま使います。</span></button>
+            <button class="choice" data-goto="s-count"><b>取り直して新しく始める</b><span>今の映像を取り込みます。前回のパーツ移動・形の変更と履歴は消えます。</span></button>
+          </div>
+          <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost" data-goto="s-home">キャンセル</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 9. シミュレーション：パーツ移動 ===================== -->
+  <section class="shot" id="s-sim" data-title="パーツ移動">
+    <div class="shot-cap">
+      <h2><span class="no">9</span>シミュレーション：パーツ移動</h2>
+      <p>取り込み画像の上で囲んでパーツを選び、移動・回転・拡大縮小・左右コピーする。パーツは一覧で切り替え・表示／非表示。「修正前」は押している間だけ取り込み画像を表示（押してみてください）。</p>
+    </div>
+    <div class="phone sim-phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
+        <div class="bar-title">シミュレーション</div>
+        <button class="btn btn-ghost btn-s" data-goto="s-mirror-after">ミラーへ</button>
+      </header>
+      <div class="tabs" role="tablist">
+        <button class="on" data-goto="s-sim">パーツ移動</button>
+        <button data-goto="s-shape">形の変更</button>
+      </div>
+      <div class="simbar">
+        <button class="btn btn-s" title="元に戻す" aria-label="元に戻す">↶</button>
+        <button class="btn btn-s" title="やり直す" aria-label="やり直す" disabled>↷</button>
+        <span class="grow"></span>
+        <button class="btn btn-s hold" data-hold>修正前</button>
+      </div>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
+          <use href="#head"/>
+          <g class="mod">
+            <!-- 元の位置を「薄くする」 -->
+            <path d="M202 260 Q232 246 262 258" stroke="#f1d3c8" stroke-width="7" fill="none" stroke-linecap="round" opacity=".75"/>
+            <!-- 移動後の左眉（画面右側）：眉頭を支点に眉尻を下げた -->
+            <path d="M202 268 Q232 256 262 268" stroke="#9a6a58" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <!-- 選択範囲と操作ハンドル -->
+            <path d="M194 268 C194 244 270 236 272 262 C274 282 196 286 194 268Z" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <rect x="194" y="246" width="78" height="34" fill="none" stroke="#b85c74" stroke-width="1.5"/>
+            <g fill="#fff" stroke="#b85c74" stroke-width="1.5">
+              <rect x="190" y="242" width="8" height="8"/><rect x="268" y="242" width="8" height="8"/>
+              <rect x="190" y="276" width="8" height="8"/><rect x="268" y="276" width="8" height="8"/>
+              <circle cx="233" cy="230" r="5"/>
+            </g>
+            <line x1="233" y1="235" x2="233" y2="246" stroke="#b85c74" stroke-width="1.5"/>
+            <!-- 回転の支点（眉頭） -->
+            <g stroke="#ffd36b" stroke-width="2"><circle cx="204" cy="268" r="5" fill="none"/><path d="M196 268h16M204 260v16"/></g>
+            <!-- 別のパーツ（右チーク・画面左側）の選択範囲 -->
+            <ellipse cx="112" cy="372" rx="38" ry="22" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>
+          </g>
+          <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1" stroke-dasharray="8 6" opacity=".6"/>
+        </svg>
+        <div class="ov" style="left:10px;top:10px"><span class="pill">左眉（画面右側）を編集中</span></div>
+        <div class="ov" style="right:10px;top:10px"><button class="btn btn-s" style="background:rgba(255,255,255,.92)">＋ 囲んで追加</button></div>
+      </div>
+      <div class="panel">
+        <div class="parts">
+          <span class="part on">左眉<small>（画面右）</small></span>
+          <span class="part"><span class="eye">◉</span>右チーク<small>（画面左）</small></span>
+          <span class="part off"><span class="eye">◌</span>右眉<small>（画面左）</small></span>
+        </div>
+        <div class="row" style="margin-top:8px;align-items:flex-start">
+          <div class="pad" aria-label="移動">
+            <span></span><button>↑</button><span></span>
+            <button>←</button><button class="c">小</button><button>→</button>
+            <span></span><button>↓</button><span></span>
+          </div>
+          <div class="grow" style="display:grid;gap:5px">
+            <div class="row"><span class="lbl" style="min-width:34px">回転</span><div class="fine"><button class="btn">⟲</button><button class="btn">⟳</button></div><button class="btn btn-ghost btn-s">支点</button></div>
+            <div class="row"><span class="lbl" style="min-width:34px">大きさ</span><div class="fine"><button class="btn">−</button><button class="btn">＋</button></div>
+              <select aria-label="拡大縮小の方向"><option>全体</option><option>長さ</option><option selected>太さ</option></select></div>
+          </div>
+        </div>
+        <div class="row">
+          <span class="lbl">元の位置</span>
+          <div class="seg"><button>残す</button><button class="on">薄くする</button><button>消す</button></div>
+        </div>
+        <details class="fold">
+          <summary>境界のぼかし・抽出の強さ</summary>
+          <div class="row"><span class="lbl">ぼかし</span><input type="range" value="40" aria-label="ぼかし幅"></div>
+          <div class="row"><span class="lbl">抽出の強さ</span><input type="range" value="60" aria-label="抽出の強さ"></div>
+        </details>
+        <div class="row" style="margin-top:6px">
+          <button class="btn grow">右眉へ左右コピー</button>
+          <button class="btn btn-danger btn-s">削除</button>
+        </div>
+        <p class="hint">移動は画像上の2D移動です。大きく動かした場合の見え方は目安です。</p>
+      </div>
+      <!-- 左右コピーで同名パーツがある場合（初期は非表示） -->
+    </div>
+  </section>
+
+  <!-- ===================== 10. 左右コピーの確認 ===================== -->
+  <section class="shot" id="s-copy" data-title="左右コピー">
+    <div class="shot-cap">
+      <h2><span class="no">10</span>左右コピー（同じ名前のパーツがあるとき）</h2>
+      <p>コピー先と同じ名前のパーツが既にある場合に表示。コピー先の範囲は中心線で反転した位置に自動で設定し、後から囲み直せる。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" aria-label="戻る">‹</button>
+        <div class="bar-title">シミュレーション</div>
+      </header>
+      <div class="tabs"><button class="on">パーツ移動</button><button>形の変更</button></div>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/></svg>
+      </div>
+      <div class="sheet-back">
+        <div class="dialog">
+          <div class="dlg-body">
+            <h2>「右眉（画面左側）」は既にあります</h2>
+            <p>左眉をコピーすると、右眉のパーツができます。既にある右眉のパーツをどうしますか。</p>
+            <button class="choice" data-goto="s-sim"><b>置き換える</b><span>既にある右眉のパーツを削除し、コピーしたパーツにします。</span></button>
+          </div>
+          <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost" data-goto="s-sim">やめる</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 11. シミュレーション：形の変更 ===================== -->
+  <section class="shot" id="s-shape" data-title="形の変更">
+    <div class="shot-cap">
+      <h2><span class="no">11</span>シミュレーション：形の変更</h2>
+      <p>削り・パテ盛りの当たり確認。対象（アイホール・頬・あご）を選ぶと影響範囲を表示し、輪郭をドラッグして押し広げ・引き込む。方向に応じて「削り」「パテ盛り」を表示する。</p>
+    </div>
+    <div class="phone sim-phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
+        <div class="bar-title">シミュレーション</div>
+        <button class="btn btn-ghost btn-s" data-goto="s-mirror-after">ミラーへ</button>
+      </header>
+      <div class="tabs" role="tablist">
+        <button data-goto="s-sim">パーツ移動</button>
+        <button class="on" data-goto="s-shape">形の変更</button>
+      </div>
+      <div class="simbar">
+        <button class="btn btn-s" aria-label="元に戻す">↶</button>
+        <button class="btn btn-s" aria-label="やり直す" disabled>↷</button>
+        <span class="grow"></span>
+        <button class="btn btn-s hold" data-hold>修正前</button>
+      </div>
+      <div class="stage">
+        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
+          <use href="#head"/>
+          <g class="mod">
+            <!-- 変形後のアイホール（目尻側を切れ長に） -->
+            <path d="M98 318 C98 292 126 290 140 292 C160 294 160 308 158 318 C156 340 140 346 128 346 C108 346 96 336 98 318Z" fill="#3a2a2e" opacity=".85"/>
+            <path d="M92 316 C92 290 126 288 140 292 C160 294 160 308 158 318 C156 340 140 346 128 346 C104 346 90 336 92 316Z" fill="none" stroke="#fff" stroke-width="1.5"/>
+          </g>
+          <!-- 影響範囲 -->
+          <circle cx="126" cy="318" r="58" fill="rgba(143,211,255,.12)" stroke="#8fd3ff" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <!-- ブラシと方向 -->
+          <circle cx="96" cy="312" r="16" fill="none" stroke="#ffd36b" stroke-width="2"/>
+          <path d="M104 312 h-24 m6 -6 l-6 6 l6 6" stroke="#ffd36b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1" stroke-dasharray="8 6" opacity=".6"/>
+        </svg>
+        <div class="ov" style="left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="pill">右アイホール（画面左側）</span>
+          <span class="kind cut" style="padding:4px 10px">削り</span>
+        </div>
+        <div class="ov" style="left:10px;right:10px;bottom:10px"><span class="pill" style="white-space:normal">輪郭の位置・形の当たり確認用です。奥行き（高さ・膨らみ）と陰影の変化は再現しません。</span></div>
+      </div>
+      <div class="panel">
+        <div class="row">
+          <span class="lbl">対象</span>
+          <select class="grow" aria-label="対象">
+            <option>左アイホール（画面右側）</option>
+            <option selected>右アイホール（画面左側）</option>
+            <option>左頬のライン（画面右側）</option>
+            <option>右頬のライン（画面左側）</option>
+            <option>あごのライン</option>
+          </select>
+        </div>
+        <div class="row">
+          <span class="lbl">ブラシ</span>
+          <input type="range" value="35" aria-label="影響範囲の大きさ">
+        </div>
+        <div class="row">
+          <span class="lbl">大きさ</span>
+          <div class="fine"><button class="btn">−</button><button class="btn">＋</button></div>
+          <span class="hint" style="margin:0">アイホールのみ</span>
+        </div>
+        <div class="row">
+          <span class="lbl">目安</span>
+          <span class="kind cut">広げる・引き込む＝削り</span>
+          <span class="kind putty">外へ押し広げる＝パテ盛り</span>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn grow">左アイホールへ左右コピー</button>
+          <button class="btn btn-ghost btn-s">この対象をリセット</button>
+        </div>
+        <p class="hint warn">右アイホールに重なる「右アイライン」は変形に合わせて動きました。</p>
+        <p class="hint">アイを入れたまま変形すると、アイも引き伸ばされます。変形する側のアイを外し、アイとの組み合わせはミラーで確認してください。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 12. 設定 ===================== -->
+  <section class="shot" id="s-settings" data-title="設定">
+    <div class="shot-cap">
+      <h2><span class="no">12</span>設定</h2>
+      <p>アプリの設定（アプリを閉じても保持）と設置方法の案内。「このアプリについて」の版の表示は参考 PWA と同じ形。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
+        <div class="bar-title">設定</div>
+        <button class="round-btn" data-about title="このアプリについて" aria-label="このアプリについて">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="7.6" r="1.2" fill="currentColor"/><path d="M12 10.8v6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <div class="scroll">
+        <div class="card">
+          <h2>カメラ画面の補助</h2>
+          <label class="set"><span class="grow">水準器<small>端末の傾きを表示</small></span><input type="checkbox" class="switch" checked></label>
+          <label class="set"><span class="grow">フレームガイド<small>ヘッド輪郭の目安の楕円</small></span><input type="checkbox" class="switch" checked></label>
+          <div class="set"><span class="grow">楕円の大きさ</span><input type="range" value="55" style="width:110px" aria-label="楕円の大きさ"></div>
+          <label class="set"><span class="grow">照明の左右差チェック<small>額の明るさで判定（目安）</small></span><input type="checkbox" class="switch" checked></label>
+          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>取り込み時のチェックは常に行います</small></span><input type="checkbox" class="switch" checked></label>
+          <label class="set"><span class="grow">中心線の表示</span><input type="checkbox" class="switch" checked></label>
+          <label class="set"><span class="grow">前回の取り込み画像の輪郭表示</span><input type="checkbox" class="switch"></label>
+        </div>
+        <div class="card">
+          <h2>カメラと取り込み</h2>
+          <div class="set"><span class="grow">ズーム倍率<small>このブラウザはデジタルズーム（画質が下がります）</small></span>
+            <select aria-label="ズーム倍率"><option>1×</option><option selected>2×</option><option>3×</option></select></div>
+          <div class="set"><span class="grow">取り込み時の待ち時間</span>
+            <select aria-label="待ち時間"><option>なし</option><option selected>1秒</option><option>2秒</option><option>3秒</option></select></div>
+        </div>
+        <div class="card">
+          <h2>表示</h2>
+          <div class="set"><span class="grow">輪郭表示・ミラーの透明度</span><input type="range" value="40" style="width:90px" aria-label="透明度"><span class="val mono">40%</span></div>
+          <div class="set"><span class="grow">ミラーの表示方法</span>
+            <select aria-label="ミラーの表示方法"><option>画像</option><option>輪郭のみ</option></select></div>
+          <div class="set"><span class="grow">輪郭の線の色</span>
+            <span class="row" style="gap:4px"><button class="swatch on" style="background:#5cf2ff" aria-label="水色"></button><button class="swatch" style="background:#ff5ca8" aria-label="ピンク"></button><button class="swatch" style="background:#fff200" aria-label="黄"></button></span></div>
+        </div>
+        <div class="card">
+          <h2>設置方法</h2>
+          <button class="btn btn-block" data-goto="s-setup">設置ガイドを見る</button>
+        </div>
+        <div class="card">
+          <h2>このアプリについて <span class="badge" data-app-version></span></h2>
+          <ul class="plain">
+            <li>カメラの映像と取り込み画像は端末の外へ送らず、保存もしません。作業内容はアプリを開いている間だけ保持します。</li>
+            <li>シミュレーションは当たり確認用の目安です。</li>
+            <li>作者・ライセンス・マニュアルへのリンクは、画面右上の ⓘ から開けます。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 13. 設置ガイド ===================== -->
+  <section class="shot" id="s-setup" data-title="設置ガイド">
+    <div class="shot-cap">
+      <h2><span class="no">13</span>設置ガイド</h2>
+      <p>ヘッド・端末・照明の配置例を図で案内する。カメラ画面と設定から開ける。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
+        <div class="bar-title">設置ガイド</div>
+      </header>
+      <div class="scroll">
+        <div class="diagram">
+          <!-- 上から見た配置 -->
+          <svg viewBox="0 0 320 210" role="img" aria-label="上から見た配置図">
+            <rect width="320" height="210" rx="10" fill="none"/>
+            <rect x="20" y="16" width="280" height="14" rx="3" fill="#d7cfd3"/>
+            <text x="160" y="27" font-size="9" text-anchor="middle" fill="#7a6a6f">無地の背景</text>
+            <circle cx="160" cy="62" r="20" fill="#f1d3c8" stroke="#b85c74" stroke-width="1.5"/>
+            <text x="160" y="66" font-size="9" text-anchor="middle" fill="#3a2e32">ヘッド</text>
+            <path d="M160 86 V150" stroke="#7a6a6f" stroke-dasharray="3 3"/>
+            <text x="166" y="122" font-size="10" fill="#b85c74" font-weight="700">30cm 以上</text>
+            <rect x="140" y="150" width="40" height="12" rx="3" fill="#3a2e32"/>
+            <text x="160" y="178" font-size="9" text-anchor="middle" fill="#3a2e32">スマートフォン（スタンドに固定）</text>
+            <text x="160" y="190" font-size="9" text-anchor="middle" fill="#7a6a6f">レンズを目の高さに・ズーム 2×</text>
+            <g fill="#ffd36b" stroke="#b98a24"><circle cx="70" cy="100" r="12"/><circle cx="250" cy="100" r="12"/></g>
+            <path d="M80 94 L138 70 M240 94 L182 70" stroke="#e0b44a" stroke-dasharray="2 3"/>
+            <text x="70" y="124" font-size="9" text-anchor="middle" fill="#7a6a6f">照明</text>
+            <text x="250" y="124" font-size="9" text-anchor="middle" fill="#7a6a6f">照明</text>
+            <text x="160" y="206" font-size="9" text-anchor="middle" fill="#7a6a6f">作業者は画面を見ながら横から手を伸ばして描く</text>
+          </svg>
+        </div>
+        <ul class="plain" style="margin-top:12px;display:grid;gap:6px">
+          <li>ヘッドをトルソー／ヘッドスタンドに取り付け、正面に向けて固定する</li>
+          <li>スマートフォンをスタンドに固定し、レンズをヘッドの目の高さに合わせて正対させる</li>
+          <li><b>30cm 以上離して置き、ズームで大きく映す</b>（近いと手前の部位が大きく写り、左右差が強調される）</li>
+          <li>照明は左右均一に（左右2灯・リングライト）。片側からの強い光は避ける</li>
+          <li>無地の背景を使う</li>
+          <li>スタンドの位置・高さ・ズームは作業中は変えない。置き場所に印を付けておくと戻しやすい</li>
+          <li>画面に触れると端末がわずかに動きます。操作の後は揺れが収まってから確かめてください</li>
+          <li>長時間の作業は充電しながら使ってください</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 14. このアプリについて ===================== -->
+  <section class="shot" id="s-about" data-title="このアプリについて">
+    <div class="shot-cap">
+      <h2><span class="no">14</span>このアプリについて</h2>
+      <p>ヘッダーの ⓘ から開く（参考 PWA と同じ構成：アイコン・タイトル・版・説明・作者・リンク）。ⓘ を押すと実際のダイアログも開きます。</p>
+    </div>
+    <div class="phone">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-icon"><img src="../icons/source/icon-original.png" alt=""></div>
+          <div><div class="brand-name">Doll Mirror Atelier</div><div class="brand-sub" data-app-version></div></div>
+        </div>
+      </header>
+      <div class="stage"><svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/></svg></div>
+      <div class="sheet-back">
+        <div class="dialog" data-about-body></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 本物のダイアログ（ⓘ から開く） -->
+<dialog class="real" id="about-dialog"><form method="dialog" data-about-body></form></dialog>
+
+<template id="about-tpl">
+  <div class="about-body">
+    <div class="about-icon"><img src="../icons/source/icon-original.png" alt=""></div>
+    <h2 class="about-title">Doll Mirror Atelier</h2>
+    <div class="about-ver mono" data-app-version></div>
+    <p class="about-desc">左右差の確認と修正のシミュレーションで<br>メイク調整前に試せる<br>ドールメイク用アトリエツール</p>
+    <div class="about-author">
+      <div class="about-label">作者</div>
+      <div class="about-logo"><img src="../images/author-logo.webp" alt="わらびもちサキュバス工房" width="1400" height="600"></div>
+      <div class="about-name">わらびもちサキュバス工房</div>
+    </div>
+    <div class="about-links">
+      <a class="btn btn-ghost" href="#" onclick="return false">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-ghost" href="#" onclick="return false">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5A2.5 2.5 0 006.5 23H20v-5"/></svg>
+        マニュアル
+      </a>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <span class="grow"></span>
+    <button class="btn btn-primary" value="close">閉じる</button>
+  </div>
+</template>
+
+<script>
+  // アプリの版（実装では js/version.js に置き、ヘッダーと「このアプリについて」に表示する。参考 PWA と同じ方式）
+  const APP_VERSION = '0.1.0';
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  // 「このアプリについて」の中身を差し込む
+  const tpl = $('#about-tpl');
+  $$('[data-about-body]').forEach((el) => el.append(tpl.content.cloneNode(true)));
+  $$('[data-app-version]').forEach((el) => (el.textContent = `v${APP_VERSION}`));
+
+  // 目次
+  $('#toc').innerHTML = $$('.shot').map((s) => `<a href="#${s.id}">${s.dataset.title}</a>`).join('');
+
+  // 画面の移動（該当するモックへスクロール）
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-goto]');
+    if (g) {
+      const t = document.getElementById(g.dataset.goto);
+      if (t) {
+        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        t.classList.add('flash');
+        setTimeout(() => t.classList.remove('flash'), 1200);
+      }
+      return;
+    }
+    if (e.target.closest('[data-about]')) { $('#about-dialog').showModal(); return; }
+    // セグメント（同じ並びの中で1つだけ選ぶ）
+    const sb = e.target.closest('.seg button');
+    if (sb) { $$('button', sb.parentElement).forEach((b) => b.classList.toggle('on', b === sb)); }
+    const sw = e.target.closest('.swatch');
+    if (sw) { $$('.swatch', sw.parentElement).forEach((b) => b.classList.toggle('on', b === sw)); }
+    const part = e.target.closest('.part');
+    if (part) {
+      if (e.target.closest('.eye')) part.classList.toggle('off');
+      else $$('.part', part.parentElement).forEach((p) => p.classList.toggle('on', p === part));
+    }
+  });
+  $('#about-dialog').addEventListener('click', (e) => { if (e.target.id === 'about-dialog') e.target.close(); });
+
+  // 「修正前」：押している間だけ修正前を表示
+  $$('[data-hold]').forEach((b) => {
+    const phone = b.closest('.phone');
+    const on = (e) => { e.preventDefault(); phone.classList.add('is-before'); b.classList.add('pressing'); };
+    const off = () => { phone.classList.remove('is-before'); b.classList.remove('pressing'); };
+    b.addEventListener('pointerdown', on);
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((t) => b.addEventListener(t, off));
+  });
+
+  // ミラー：基準の側・表示方法・透明度
+  const flip = $('#m-flip'), ovl = $('#m-overlay');
+  $('#m-basis').addEventListener('click', (e) => {
+    const v = e.target.closest('button')?.dataset.v; if (!v) return;
+    // 左基準：画面右側を反転して画面左側に重ねる ／ 右基準：その逆
+    ovl.setAttribute('clip-path', v === 'left' ? 'url(#clip-left)' : 'url(#clip-right)');
+    $('#m-label').textContent = v === 'left' ? '左基準：ドールの左顔（画面右側）を反転' : '右基準：ドールの右顔（画面左側）を反転';
+  });
+  $('#m-mode').addEventListener('click', (e) => {
+    const v = e.target.closest('button')?.dataset.v; if (!v) return;
+    $('#m-img').toggleAttribute('hidden', v === 'edge');
+    $('#m-edge').toggleAttribute('hidden', v !== 'edge');
+    $('#m-colors').hidden = v !== 'edge';
+  });
+  $('#m-colors').addEventListener('click', (e) => {
+    const c = e.target.closest('.swatch')?.dataset.c; if (c) $('#m-edge').style.color = c;
+  });
+  $('#m-alpha').addEventListener('input', (e) => {
+    const v = +e.target.value;
+    ovl.setAttribute('opacity', String(1 - v / 100)); // 0%：不透明、100%：完全に透明
+    $('#m-alpha-v').textContent = `${v}%`;
+  });
+</script>
+</body>
+</html>
