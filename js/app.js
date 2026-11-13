@@ -6,7 +6,7 @@ import * as G from './geom.js';
 import * as IM from './imaging.js';
 import { cam } from './camera.js';
 import { settings, save, LINE_COLORS } from './settings.js';
-import { Sim, PART_NAMES, pairName, partLabel, TARGETS, targetLabel } from './sim.js';
+import { Sim, partLabel, copySide, TARGETS, targetLabel } from './sim.js';
 import { $, $$, esc, toast, choose } from './ui.js';
 /* global APP_VERSION */
 
@@ -366,7 +366,7 @@ function renderChips() {
       const p = S.sim.selPart;
       if (S.mode === 'lasso') chips.push('<span class="pill">指でなぞって、パーツにする範囲を囲んでください</span>');
       else if (S.mode === 'relasso') chips.push('<span class="pill">選択範囲を囲み直してください</span>');
-      else if (S.mode === 'redest') chips.push('<span class="pill">コピー先の範囲を囲み直してください</span>');
+      else if (S.mode === 'redest') chips.push('<span class="pill">もとからあるメイクを薄くする・消す範囲を囲んでください</span>');
       else if (S.mode === 'pivot') chips.push('<span class="pill">回転の支点にする位置をタップしてください</span>');
       else if (p) chips.push(`<span class="pill">${esc(partLabel(p.name))}を編集中</span>`);
     } else {
@@ -665,8 +665,8 @@ function drawSim() {
     const p = sim.selPart;
     for (const q of sim.parts) if (q !== p && q.visible) outlinePart(q, V, 'rgba(255,255,255,.45)', [3, 3]);
     if (p) {
-      // コピー先の範囲（元の位置の処理をする範囲）
-      if (p.copy) polyPath(sim.warp(sim.destPoly(p)).map((q) => G.ap(V, q)), 'rgba(255,211,107,.8)', [4, 3]);
+      // コピー先の消す範囲（もとからあるメイクを薄くする・消す範囲）。「残す」では使わないため表示しない
+      if (p.copy) { if (p.origin !== 'keep') polyPath(sim.warp(sim.destPoly(p)).map((q) => G.ap(V, q)), 'rgba(255,211,107,.8)', [4, 3]); }
       else polyPath(sim.warp(p.poly).map((q) => G.ap(V, q)), 'rgba(255,255,255,.7)', [4, 3]);
       outlinePart(p, V, '#e08ba1', null);
       const { piv } = sim.frame(p);
@@ -727,6 +727,7 @@ stage.addEventListener('pointerdown', (e) => {
     return;
   }
   if (S.screen !== 'sim' || !S.sim || S.before) return;
+  if (!S.view) { fitCanvas(); fitView(); } // 最初の描画より前に触れた場合（画面の大きさに合わせてから表示を決める）
   try { stage.setPointerCapture(e.pointerId); } catch { /* 取り込めなくても操作は続ける */ }
   pts.set(e.pointerId, p);
   const sim = S.sim;
@@ -897,24 +898,19 @@ async function finishLasso() {
     if (!p) return;
     sim.begin();
     if (mode === 'redest') { p.poly = poly; p.destAuto = false; p._ox = null; }
-    else { if (p.copy) p.copy.poly = poly; else p.poly = poly; p._ex = null; p._ox = null; }
+    else {
+      if (p.copy) p.copy.poly = poly; else p.poly = poly; p._ex = null; p._ox = null;
+      // 反対側を囲み直した場合は、名前（側）も付け直す（コピーしたパーツの側は、コピー先で決まっているため変えない）
+      if (!p.copy) sim.setSide(p, sim.sideOfPoly(poly));
+    }
     sim.touch(); updateSimPanel(); S.dirty = true;
     return;
   }
-  const name = await pickName(sim.suggestName(poly), null);
-  if (!name) { updateSimPanel(); S.dirty = true; return; }
+  // 名前は囲んだ位置（中心線のどちら側か）から自動で付ける（例：右1）
   sim.begin();
-  sim.addPart(poly, name);
+  const p = sim.addPart(poly);
+  toast(`${partLabel(p.name)}を追加しました`);
   updateSimPanel(); S.dirty = true;
-}
-async function pickName(value, exceptId) {
-  const r = await choose({
-    title: 'パーツの名前',
-    html: '<p>名前は左右コピーのコピー先を決めるのにも使います。同じ名前のパーツは1つまでです（「その他」を除く）。</p>',
-    select: { options: PART_NAMES.map((n) => [n, partLabel(n), !S.sim.nameFree(n, exceptId)]), value },
-    ok: '決定',
-  });
-  return r?.selected || null;
 }
 
 // ---------------- パネル（パーツ移動） ----------------
@@ -932,7 +928,7 @@ function updateSimPanel() {
     const p = sim.selPart;
     $('#part-ctl').hidden = !p;
     if (p) {
-      $('#part-name').innerHTML = PART_NAMES.map((n) => `<option value="${esc(n)}" ${n === p.name ? 'selected' : ''} ${sim.nameFree(n, p.id) ? '' : 'disabled'}>${esc(partLabel(n))}</option>`).join('');
+      $('#part-name').textContent = partLabel(p.name);
       $('#part-vis').textContent = p.visible ? '非表示' : '表示';
       const i = sim.parts.indexOf(p);
       $('#part-up').disabled = i === sim.parts.length - 1;
@@ -941,14 +937,18 @@ function updateSimPanel() {
       $('#origin-lbl').textContent = p.copy ? 'コピー先' : '元の位置';
       $('#feather').value = p.feather;
       $('#strength').value = Math.round(p.strength * 100);
-      const pn = pairName(p.name);
-      $('#btn-copy').textContent = pn ? `${partLabel(pn)}へ左右コピー` : '左右コピーの対象外';
-      $('#btn-copy').disabled = !pn;
+      const cs = copySide(p);
+      $('#btn-copy').textContent = cs ? `${cs === 'L' ? '左（画面右側）' : '右（画面左側）'}へコピー` : '左右コピーの対象外（中央のパーツ）';
+      $('#btn-copy').disabled = !cs;
       $('#btn-pivot').setAttribute('aria-pressed', String(S.mode === 'pivot'));
-      $('#btn-relasso').textContent = p.copy ? 'コピー先を囲み直す' : '囲み直す';
+      // コピーしたパーツ：もとからあるメイクを薄くする・消す範囲を囲み直す（「残す」では範囲を使わないため出さない）
+      $('#btn-relasso').textContent = p.copy ? '消す範囲を囲み直す' : '囲み直す';
+      $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
+      $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
       $('#step-size').textContent = S.big ? '大' : '小';
       const notes = [];
-      if (p.copy) notes.push(`${p.destAuto ? 'コピー先の範囲は、コピー元を中心線で反転した位置に自動で決めています。' : 'コピー先の範囲は囲み直した範囲です。'}「コピー先」で、コピー先の既存メイクを残す・薄くする・消すを選べます。`);
+      if (p.copy && p.origin === 'keep') notes.push('「コピー先」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
+      else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
       if (!p.visible) notes.push('非表示のパーツは、ミラーの修正後の画像にも含めません。');
       $('#part-note').textContent = notes.join(' ');
     }
@@ -1007,7 +1007,6 @@ $('#origin').addEventListener('click', (e) => { const v = e.target.closest('butt
 $('#part-vis').addEventListener('click', () => edit((p) => { p.visible = !p.visible; }));
 $('#part-up').addEventListener('click', () => edit((p, sim) => { const i = sim.parts.indexOf(p); if (i < sim.parts.length - 1) [sim.parts[i], sim.parts[i + 1]] = [sim.parts[i + 1], sim.parts[i]]; }));
 $('#part-down').addEventListener('click', () => edit((p, sim) => { const i = sim.parts.indexOf(p); if (i > 0) [sim.parts[i], sim.parts[i - 1]] = [sim.parts[i - 1], sim.parts[i]]; }));
-$('#part-name').addEventListener('change', (e) => edit((p) => { p.name = e.target.value; }));
 $('#btn-del').addEventListener('click', () => { const sim = S.sim, p = sim.selPart; if (!p) return; sim.begin(); sim.removePart(p); updateSimPanel(); S.dirty = true; });
 // スライダー：動かし始めに1回だけ履歴に積む
 let sliding = false;
@@ -1022,21 +1021,11 @@ for (const id of ['feather', 'strength']) {
   });
   el.addEventListener('change', () => { sliding = false; updateSimPanel(); });
 }
-$('#btn-copy').addEventListener('click', async () => {
+$('#btn-copy').addEventListener('click', () => {
   const sim = S.sim, p = sim.selPart; if (!p) return;
   sim.begin();
-  let r = sim.copyPart(p, false);
-  if (r?.conflict) {
-    const name = pairName(p.name);
-    const a = await choose({
-      title: `「${partLabel(name)}」は既にあります`,
-      html: `<p>${esc(partLabel(p.name))}をコピーすると、${esc(partLabel(name))}のパーツができます。既にある${esc(partLabel(name))}のパーツをどうしますか。</p>`,
-      choices: [{ value: 'replace', label: '置き換える', desc: `既にある${partLabel(name)}のパーツを削除し、コピーしたパーツにします。` }],
-      cancel: 'やめる',
-    });
-    if (a !== 'replace') { sim.cancel(); return; }
-    r = sim.copyPart(p, true);
-  }
+  // 反対側に新しいパーツとして追加する（既にある反対側のパーツは置き換えない）
+  const r = sim.copyPart(p);
   if (!r) { sim.cancel(); return; }
   toast(`${partLabel(r.name)}のパーツを追加しました`);
   updateSimPanel(); S.dirty = true;

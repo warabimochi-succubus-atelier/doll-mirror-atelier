@@ -9,27 +9,20 @@ import * as IM from './imaging.js';
 
 const UNDO_MAX = 100;
 
-// ---------------- パーツの名前（想定対象） ----------------
-export const PART_NAMES = [
-  '左眉', '右眉', '左アイライン', '右アイライン', '左チーク', '右チーク', '左アイシャドウ', '右アイシャドウ',
-  '左まつ毛', '右まつ毛', 'リップ', 'その他（ドールの左）', 'その他（ドールの右）', 'その他（中央）',
-];
-const isOther = (n) => n.startsWith('その他');
-/** 左右コピーのコピー先の名前（コピーできないものは null） */
-export function pairName(n) {
-  if (n === 'リップ' || n === 'その他（中央）') return null;
-  if (n === 'その他（ドールの左）') return 'その他（ドールの右）';
-  if (n === 'その他（ドールの右）') return 'その他（ドールの左）';
-  if (n.startsWith('左')) return '右' + n.slice(1);
-  if (n.startsWith('右')) return '左' + n.slice(1);
-  return null;
-}
-/** 画面上の位置を添えた名前（例：左眉（画面右側）） */
+// ---------------- パーツの名前 ----------------
+// 名前は「側」と「番号」だけ（例：右1、左2、中央1）。側は囲んだ範囲の位置（中心線のどちら側か）から決める。
+// 左右は「ドール本人から見た左右」：中心線より画面右側が左、画面左側が右
+const SIDE_WORD = { L: '左', R: '右', C: '中央' };
+const OPPOSITE = { L: 'R', R: 'L' };
+const partNameOf = (side, no) => `${SIDE_WORD[side]}${no}`;
+/** 画面上の位置を添えた名前（例：左1（画面右側）） */
 export function partLabel(n) {
-  if (n.startsWith('左') || n === 'その他（ドールの左）') return `${n}（画面右側）`;
-  if (n.startsWith('右') || n === 'その他（ドールの右）') return `${n}（画面左側）`;
+  if (n.startsWith('左')) return `${n}（画面右側）`;
+  if (n.startsWith('右')) return `${n}（画面左側）`;
   return n;
 }
+/** 左右コピーのコピー先の側（中央のパーツはコピーできないため null） */
+export const copySide = (p) => OPPOSITE[p.side] || null;
 
 // ---------------- 形の変更の対象 ----------------
 export const TARGETS = [
@@ -206,28 +199,29 @@ export class Sim {
   deformedTargets() { return this.targets.filter((t) => !IM.gridIsZero(this.eff(t))); }
 
   // ---------------- パーツ ----------------
-  usedNames() { return new Set(this.parts.map((p) => p.name)); }
-  nameFree(n, exceptId) { return isOther(n) || !this.parts.some((p) => p.name === n && p.id !== exceptId); }
-  /** 囲んだ位置から名前の候補を決める */
-  suggestName(poly) {
-    const ax = this.ax, [cx, cy] = G.centroid(poly), g = this.cap.guides;
-    const side = G.sideOf(ax, [cx, cy]), along = G.alongOf(ax, [cx, cy]);
-    const eye = (g.eyeY - 0.5) * this.cap.h, sp = g.spacing * this.cap.w;
-    const lr = side > 0 ? '左' : '右';
-    let base;
-    if (Math.abs(side) < sp * 0.35) base = along > eye + sp ? 'リップ' : 'その他（中央）';
-    else if (along < eye - sp * 0.55) base = lr + '眉';
-    else if (along < eye + sp * 0.4) base = lr + 'アイライン';
-    else base = lr + 'チーク';
-    if (this.nameFree(base)) return base;
-    const other = side > 0 ? 'その他（ドールの左）' : 'その他（ドールの右）';
-    return Math.abs(side) < sp * 0.35 ? 'その他（中央）' : other;
+  /** 囲んだ範囲の側：'L'（ドールの左＝画面右側）/ 'R'（ドールの右＝画面左側）/ 'C'（中心線にかかる中央） */
+  sideOfPoly(poly) {
+    const s = G.sideOf(this.ax, G.centroid(poly));
+    return Math.abs(s) < this.cap.guides.spacing * this.cap.w * 0.35 ? 'C' : s > 0 ? 'L' : 'R';
   }
-  addPart(poly, name) {
+  /** その側で使われていない最も小さい番号 */
+  freeNo(side, exceptId) {
+    const used = new Set(this.parts.filter((p) => p.side === side && p.id !== exceptId).map((p) => p.no));
+    let n = 1;
+    while (used.has(n)) n++;
+    return n;
+  }
+  /** パーツの側を設定し、名前（側＋番号）を付け直す。側が変わらなければ名前はそのまま */
+  setSide(p, side) {
+    if (p.side === side && p.name) return;
+    p.side = side; p.no = this.freeNo(side, p.id); p.name = partNameOf(side, p.no);
+  }
+  addPart(poly) {
     const p = {
-      id: seq++, name, visible: true, poly, feather: Math.max(3, Math.round(G.bbox(poly).h * 0.12)), strength: 0.5,
+      id: seq++, name: '', side: null, no: 0, visible: true, poly, feather: Math.max(3, Math.round(G.bbox(poly).h * 0.12)), strength: 0.5,
       origin: 'fade', t: { tx: 0, ty: 0, rot: 0, sl: 1, st: 1 }, pivot: null, copy: null, destAuto: false, _ex: null, _ox: null,
     };
+    this.setSide(p, this.sideOfPoly(poly));
     this.parts.push(p);
     this.sel = p.id;
     this.touch();
@@ -299,15 +293,13 @@ export class Sim {
     const m = Math.max(6, 0.08 * Math.max(ex.w, ex.h));
     return r[0] >= ex.x - m && r[1] >= ex.y - m && r[0] <= ex.x + ex.w + m && r[1] <= ex.y + ex.h + m;
   }
-  /** 左右コピー。返り値：作ったパーツ。コピー先と同じ名前のパーツがあれば replace の指定が必要 */
-  copyPart(p, replace) {
-    const name = pairName(p.name);
-    if (!name) return null;
-    const same = isOther(name) ? null : this.parts.find((x) => x.name === name);
-    if (same && !replace) return { conflict: same };
-    if (same) this.parts = this.parts.filter((x) => x !== same);
+  /** 左右コピー。反対側の新しいパーツ（その側の空いている番号）を作って返す。中央のパーツは null */
+  copyPart(p) {
+    const side = copySide(p);
+    if (!side) return null;
+    const no = this.freeNo(side);
     const c = {
-      id: seq++, name, visible: true, poly: [], feather: p.feather, strength: p.strength, origin: p.origin,
+      id: seq++, name: partNameOf(side, no), side, no, visible: true, poly: [], feather: p.feather, strength: p.strength, origin: p.origin,
       t: { tx: 0, ty: 0, rot: 0, sl: 1, st: 1 }, pivot: null, destAuto: true, _ex: null, _ox: null,
       // コピー元の範囲と、その時点の行列を記録する（中心線を変えたときに反転位置を計算し直すため）
       copy: { srcId: p.id, poly: (p.copy ? p.copy.poly : p.poly).map((q) => q.slice()), feather: p.copy ? p.copy.feather : p.feather, strength: p.copy ? p.copy.strength : p.strength, m: this.matrix(p) },
