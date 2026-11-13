@@ -50,9 +50,16 @@ http://localhost:8766/ を開きます。カメラの無い PC では http://loc
 | `tools/dev-server.py` | 開発用のサーバー |
 | `tools/demo-head.svg` | 開発用の映像（`?demo`） |
 | `mock/index.html` | 画面のモック |
+| `.nojekyll` | GitHub Pages の Jekyll 変換を止め、ファイルをそのまま配信する（中身は空） |
+| `LICENSE` | MIT License |
+| `NOTICE.md` | ロゴ・アイコンの権利について |
 
 ## 現在の制限
 
 - ピンぼけ・ブレ、照明の左右差の判定の基準値は目安です。実機での試作で見直します（仕様書「先行して試作・検証する項目」）。
 - 水準器は端末のモーションセンサーの値から求めた目安です。
 - メイク成分の抽出は、囲んだ範囲の周囲の色を肌色とみなして行う簡易な方式です。
+
+## ライセンス
+
+[MIT License](LICENSE) のもとで公開しています。ただし、ロゴとアイコンは対象外です。詳しくは [NOTICE.md](NOTICE.md) を参照してください。
