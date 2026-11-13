@@ -1,43 +1,82 @@
-// 形の変更の変形：制御点（取っ手と固定点）による画像の変形と、その描画
+// 形の変更の変形：制御点（取っ手を通る曲線と固定点）による画像の変形と、その描画
 // 仕様書「形の変更」と、技術構成の「形の変更の実装」を参照
 //
-// 変形は、制御点の元の位置 P と動かした後の位置 Q から、画像のすべての点の移動先を決める
-// 移動最小二乗法（MLS：Moving Least Squares、剛体版）で行う。制御点の近くほどその制御点に従い、
-// 間は滑らかにつながる。取っ手の周りに動かない固定点を置き、変形が顔の他の部分に広がらないようにする。
+// 変形は、制御点の元の位置 P と動かした後の位置 Q から、画像のすべての点の移動量を決める
+// TPS（Thin Plate Spline）で行う。制御点をすべて正確に通り、その間を曲げが最も小さくなるように
+// 滑らかにつなぐ。制御点の並び（P）が同じ間は、連立方程式の逆行列と、格子の頂点ごとの係数を使い回し、
+// 動かした量（Q − P）が変わったときは掛け算だけで描き直す。
 //
 // 描画は WebGL で、画像を貼った格子の頂点を移動先へ動かして描く（指の動きに合わせて描き直せる速さにするため）。
 // WebGL を使えない場合は、画素ごとに移動元を求めて描く（遅い）。
 
-/**
- * 点 (vx, vy) の移動先（MLS・剛体版）
- * @param P 制御点の元の位置 [x0, y0, x1, y1, ...]、Q 動かした後の位置（同じ並び）
- */
-export function mls(P, Q, vx, vy) { const o = [0, 0]; mlsInto(P, Q, vx, vy, o); return o; }
+/** TPS の基底関数 U(r) = r² log r（r² で受け取る） */
+const kern = (r2) => (r2 < 1e-12 ? 0 : 0.5 * r2 * Math.log(r2));
 
-let W = new Float64Array(0);
-/** mls と同じ。結果を out に書く（格子の頂点ごとに呼ぶため、配列を作らない） */
-export function mlsInto(P, Q, vx, vy, out) {
-  const n = P.length >> 1;
-  if (W.length < n) W = new Float64Array(n);
-  let sw = 0, px = 0, py = 0, qx = 0, qy = 0;
-  for (let i = 0, j = 0; i < n; i++, j += 2) {
-    const dx = P[j] - vx, dy = P[j + 1] - vy, d2 = dx * dx + dy * dy;
-    if (d2 < 1e-6) { out[0] = Q[j]; out[1] = Q[j + 1]; return; } // 制御点の上はその移動先
-    const wi = 1 / d2;
-    W[i] = wi; sw += wi;
-    px += wi * P[j]; py += wi * P[j + 1]; qx += wi * Q[j]; qy += wi * Q[j + 1];
+/**
+ * TPS の変形。new Tps(P) で準備し、solve(Q) で動かした後の位置を与え、dispInto で点ごとの移動量を求める
+ * @param P 制御点の元の位置 [x0, y0, x1, y1, ...]
+ */
+export class Tps {
+  constructor(P) {
+    const n = P.length >> 1, m = n + 3;
+    // 座標は桁をそろえて計算する（基底関数の値が大きくなりすぎないように）
+    let s = 1;
+    for (let i = 0; i < P.length; i++) s = Math.max(s, Math.abs(P[i]));
+    this.P = P; this.n = n; this.m = m; this.s = 1 / s;
+    const X = new Float64Array(P.length);
+    for (let i = 0; i < P.length; i++) X[i] = P[i] * this.s;
+    this.X = X;
+    // [K 1 x y; 1ᵀ 0; xᵀ 0; yᵀ 0] の逆行列（掃き出し法）。右辺の下3行は 0 なので、左の n 列だけ残す
+    const A = new Float64Array(m * m), B = new Float64Array(m * m);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) { const dx = X[2 * i] - X[2 * j], dy = X[2 * i + 1] - X[2 * j + 1]; A[i * m + j] = kern(dx * dx + dy * dy); }
+      const r = [1, X[2 * i], X[2 * i + 1]];
+      for (let k = 0; k < 3; k++) { A[i * m + n + k] = r[k]; A[(n + k) * m + i] = r[k]; }
+    }
+    for (let i = 0; i < m; i++) B[i * m + i] = 1;
+    for (let c = 0; c < m; c++) {
+      let p = c, best = Math.abs(A[c * m + c]);
+      for (let r = c + 1; r < m; r++) { const v = Math.abs(A[r * m + c]); if (v > best) { best = v; p = r; } }
+      if (best < 1e-12) throw new Error('tps');
+      if (p !== c) for (let k = 0; k < m; k++) { let t = A[c * m + k]; A[c * m + k] = A[p * m + k]; A[p * m + k] = t; t = B[c * m + k]; B[c * m + k] = B[p * m + k]; B[p * m + k] = t; }
+      const iv = 1 / A[c * m + c];
+      for (let k = 0; k < m; k++) { A[c * m + k] *= iv; B[c * m + k] *= iv; }
+      for (let r = 0; r < m; r++) {
+        if (r === c) continue;
+        const f = A[r * m + c];
+        if (!f) continue;
+        for (let k = 0; k < m; k++) { A[r * m + k] -= f * A[c * m + k]; B[r * m + k] -= f * B[c * m + k]; }
+      }
+    }
+    this.inv = new Float64Array(m * n);
+    for (let r = 0; r < m; r++) for (let c = 0; c < n; c++) this.inv[r * n + c] = B[r * m + c];
+    this.wx = new Float64Array(m); this.wy = new Float64Array(m);
   }
-  px /= sw; py /= sw; qx /= sw; qy /= sw;
-  const cx = vx - px, cy = vy - py;
-  let fx = 0, fy = 0;
-  for (let i = 0, j = 0; i < n; i++, j += 2) {
-    const ax = P[j] - px, ay = P[j + 1] - py, bx = Q[j] - qx, by = Q[j + 1] - qy;
-    const al = ax * cx + ay * cy, be = ax * cy - ay * cx, wi = W[i];
-    fx += wi * (bx * al - by * be); fy += wi * (bx * be + by * al);
+  /** 動かした後の位置 Q（P と同じ並び）から係数を求める */
+  solve(Q) {
+    const { n, m, inv, P } = this;
+    for (let r = 0; r < m; r++) {
+      let sx = 0, sy = 0;
+      for (let c = 0, o = r * n; c < n; c++) { const v = inv[o + c]; sx += v * (Q[2 * c] - P[2 * c]); sy += v * (Q[2 * c + 1] - P[2 * c + 1]); }
+      this.wx[r] = sx; this.wy[r] = sy;
+    }
+    return this;
   }
-  const fl = Math.sqrt(fx * fx + fy * fy), cl = Math.sqrt(cx * cx + cy * cy);
-  if (fl < 1e-9) { out[0] = vx - px + qx; out[1] = vy - py + qy; return; }
-  out[0] = qx + (cl * fx) / fl; out[1] = qy + (cl * fy) / fl;
+  /** 点 (x, y) の基底関数の値（長さ m）。同じ点を何度も計算する場合に row に書いて使い回す */
+  row(x, y, row) {
+    const { n, X, s } = this, px = x * s, py = y * s;
+    for (let i = 0; i < n; i++) { const dx = px - X[2 * i], dy = py - X[2 * i + 1]; row[i] = kern(dx * dx + dy * dy); }
+    row[n] = 1; row[n + 1] = px; row[n + 2] = py;
+    return row;
+  }
+  /** 点 (x, y) の移動量を out に書く */
+  dispInto(x, y, out) {
+    const { n, X, s, wx, wy } = this, px = x * s, py = y * s;
+    let dx = wx[n] + wx[n + 1] * px + wx[n + 2] * py, dy = wy[n] + wy[n + 1] * px + wy[n + 2] * py;
+    for (let i = 0; i < n; i++) { const ex = px - X[2 * i], ey = py - X[2 * i + 1], k = kern(ex * ex + ey * ey); dx += wx[i] * k; dy += wy[i] * k; }
+    out[0] = dx; out[1] = dy;
+    return out;
+  }
 }
 
 /**
@@ -50,12 +89,6 @@ export function fadeAt(box, x, y) {
   if (d >= box.band) return 1;
   const t = d / box.band;
   return t * t * (3 - 2 * t);
-}
-
-/** 制御点が1つも動いていないか */
-export function isIdentity(P, Q) {
-  for (let i = 0; i < P.length; i++) if (Math.abs(P[i] - Q[i]) > 0.01) return false;
-  return true;
 }
 
 // ---------------- 描画 ----------------
@@ -132,14 +165,14 @@ export class Warper {
 
   /**
    * 変形した画像を描く。返り値は描いた canvas（WebGL の canvas。続けて描くと上書きされる）
-   * @param src 元の画像（2D の canvas）、P / Q 制御点、box 変形がある範囲 {x0, y0, x1, y1}（範囲の外は計算しない）
+   * @param src 元の画像（2D の canvas）、tps 係数を求めた Tps、box 変形がある範囲 {x0, y0, x1, y1, band}（範囲の外は計算しない）
    */
-  render(src, P, Q, box) {
+  render(src, tps, box) {
     const w = src.width, h = src.height;
-    if (!this.setup(w, h)) return this.renderCpu(src, P, Q, box);
+    if (!this.setup(w, h)) return this.renderCpu(src, tps, box);
     const gl = this.gl;
     if (!this.mesh || this.mesh.w !== w || this.mesh.h !== h) {
-      this.mesh = this.makeMesh(w, h);
+      this.mesh = this.makeMesh(w, h); this.rows = null;
       gl.bindBuffer(gl.ARRAY_BUFFER, this.bufTex); gl.bufferData(gl.ARRAY_BUFFER, this.mesh.rest, gl.STATIC_DRAW);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufIdx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.mesh.idx, gl.STATIC_DRAW);
     }
@@ -149,14 +182,14 @@ export class Warper {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
       this.src = src;
     }
-    const m = this.mesh, pos = m.pos, q = [0, 0];
+    const m = this.mesh, pos = m.pos, R = this.rowsFor(tps, box), M = tps.m, wx = tps.wx, wy = tps.wy;
     pos.set(m.rest);
-    for (let k = 0; k < pos.length; k += 2) {
-      const x = m.rest[k], y = m.rest[k + 1];
-      const f = fadeAt(box, x, y);
-      if (!f) continue;
-      mlsInto(P, Q, x, y, q);
-      pos[k] = x + (q[0] - x) * f; pos[k + 1] = y + (q[1] - y) * f;
+    for (let a = 0; a < R.idx.length; a++) {
+      const k = R.idx[a], o = a * M;
+      let dx = 0, dy = 0;
+      for (let i = 0; i < M; i++) { const v = R.K[o + i]; dx += v * wx[i]; dy += v * wy[i]; }
+      const f = R.fade[a];
+      pos[2 * k] += dx * f; pos[2 * k + 1] += dy * f;
     }
     gl.viewport(0, 0, w, h);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -170,8 +203,24 @@ export class Warper {
     return this.cv;
   }
 
-  /** WebGL を使えない場合：範囲の中の画素ごとに、移動元（Q → P の変形）を格子で補間して描く */
-  renderCpu(src, P, Q, box) {
+  /**
+   * 範囲の中の格子の頂点ごとの基底関数の値（制御点の並びが同じ間は使い回す）
+   */
+  rowsFor(tps, box) {
+    if (this.rows && this.rows.tps === tps && this.rows.mesh === this.mesh) return this.rows;
+    const m = this.mesh, idx = [], fade = [];
+    for (let k = 0; k < m.rest.length / 2; k++) {
+      const f = fadeAt(box, m.rest[2 * k], m.rest[2 * k + 1]);
+      if (f) { idx.push(k); fade.push(f); }
+    }
+    const M = tps.m, K = new Float32Array(idx.length * M), row = new Float64Array(M);
+    idx.forEach((k, a) => { tps.row(m.rest[2 * k], m.rest[2 * k + 1], row); K.set(row, a * M); });
+    this.rows = { tps, mesh: m, idx: Uint32Array.from(idx), fade: Float32Array.from(fade), K };
+    return this.rows;
+  }
+
+  /** WebGL を使えない場合：範囲の中の画素ごとに、移動元（変形の逆）を格子で補間して描く */
+  renderCpu(src, tps, box) {
     const w = src.width, h = src.height;
     if (!this.out || this.out.width !== w || this.out.height !== h) {
       this.out = document.createElement('canvas'); this.out.width = w; this.out.height = h;
@@ -182,14 +231,19 @@ export class Warper {
     const x1 = Math.min(w, Math.ceil(box.x1)), y1 = Math.min(h, Math.ceil(box.y1));
     const bw = x1 - x0, bh = y1 - y0;
     if (bw < 2 || bh < 2) return this.out;
-    // 移動元の格子（出力の点 → 元の画像の点）
+    // 移動元の格子（出力の点 x → 元の画像の点 s。s + 移動量(s) = x を繰り返しで解く）
     const step = Math.max(8, Math.max(w, h) / CELLS);
     const gx = Math.ceil(bw / step) + 1, gy = Math.ceil(bh / step) + 1;
-    const sx = new Float32Array(gx * gy), sy = new Float32Array(gx * gy);
+    const sx = new Float32Array(gx * gy), sy = new Float32Array(gx * gy), d = [0, 0];
     for (let j = 0; j < gy; j++) for (let i = 0; i < gx; i++) {
-      const x = x0 + i * step, y = y0 + j * step, f = fadeAt(box, x, y);
-      const s = f ? mls(Q, P, x, y) : [x, y];
-      sx[j * gx + i] = x + (s[0] - x) * f; sy[j * gx + i] = y + (s[1] - y) * f;
+      const x = x0 + i * step, y = y0 + j * step;
+      let px = x, py = y;
+      for (let it = 0; it < 4; it++) {
+        const f = fadeAt(box, px, py);
+        if (!f) { d[0] = 0; d[1] = 0; } else { tps.dispInto(px, py, d); d[0] *= f; d[1] *= f; }
+        px = x - d[0]; py = y - d[1];
+      }
+      sx[j * gx + i] = px; sy[j * gx + i] = py;
     }
     const sd = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
     const dst = ox.getImageData(x0, y0, bw, bh), dd = dst.data;

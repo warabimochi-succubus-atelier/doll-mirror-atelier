@@ -26,6 +26,11 @@ export const sideLabel = (s) => (s === 'L' ? '左（画面右側）' : '右（�
 const FACE_KEYS = [['temple', 'こめかみ', 70], ['cheek', '頬', 100], ['era', 'エラ', 125], ['jaw', 'あご', 152]];
 const EYE_KEYS = [['in', '目頭'], ['top', '上縁'], ['out', '目尻'], ['bot', '下縁']];
 
+// 変形の制御点：曲線を区切る細かさ（取っ手の間ごと）と、輪郭の固定の帯（顔の中心からの倍率）
+const FACE_SEG = 6, EYE_SEG = 6, FACE_IN = 0.6, FACE_OUT = 1.45;
+// アイホールの固定点：アイの部分（縁を中心へ縮めた倍率）と、外側の輪（横・縦の半径の倍率）
+const EYE_IN = 0.3, EYE_OUT = [1.7, 2.4];
+
 /** スライダー（Live2D のパラメーターに相当）。値は -1〜1 */
 export const SLIDERS = {
   face: [
@@ -109,10 +114,15 @@ function paramD(sh, h, ax) {
   const e = eyeFrame(sh, h.group, ax), p = sh.params[h.group];
   const r = sub(h.r, e.c), s = 0.3 * p.size;
   let dx = r[0] * s, dy = r[1] * s;
-  const m = e.b * 0.6;
+  const m = e.b * 0.5;
   if (h.key === 'top') { dx += up[0] * m * p.up; dy += up[1] * m * p.up; }
   if (h.key === 'bot') { dx += u[0] * m * p.down; dy += u[1] * m * p.down; }
   if (h.key === 'out') { dx += up[0] * m * p.tail; dy += up[1] * m * p.tail; }
+  // 上縁・下縁は、アイの中心から縦の半径の半分より近づけない（アイの部分の固定点を越えて画像が折り返さないように）
+  if (h.key === 'top' || h.key === 'bot') {
+    const dir = h.key === 'top' ? up : u, k = dot([r[0] + dx, r[1] + dy], dir), lim = e.b * 0.5;
+    if (k < lim) { dx += dir[0] * (lim - k); dy += dir[1] * (lim - k); }
+  }
   return [dx, dy];
 }
 /** 取っ手の実際の移動量（ドラッグ等の移動量 ＋ スライダーの分） */
@@ -202,58 +212,77 @@ export function resetRest(sh, group) { for (const h of sh.handles) if (h.group =
 // ---------------- 変形の制御点 ----------------
 
 /**
- * 変形の制御点（取っ手と固定点）と、変形を計算する範囲
+ * 変形の制御点と、変形を計算する範囲。
+ * 取っ手を通る曲線（輪郭・アイホール）を細かく区切った点を「元の曲線 → 変形後の曲線」で動かし、
+ * 曲線の内側と外側に帯のように並べた固定点で、変形を曲線の周りに収める。
+ * 固定点の位置は元の位置（位置合わせ）だけから決める（変形の操作中は制御点の並びが変わらないようにして、
+ * warp.js の計算の準備を使い回すため）
  * @returns {{ P: Float64Array, Q: Float64Array, box, identity }}
  */
 export function controls(sh, ax) {
   const P = [], Q = [];
-  const fix = (p) => { P.push(p[0], p[1]); Q.push(p[0], p[1]); };
-  for (const h of sh.handles) { const q = moved(sh, h, ax); P.push(h.r[0], h.r[1]); Q.push(q[0], q[1]); }
-  const nH = P.length / 2;
+  const far = (p, dmin) => {
+    for (let i = 0; i < P.length; i += 2) if (Math.hypot(P[i] - p[0], P[i + 1] - p[1]) < dmin) return false;
+    return true;
+  };
+  const add = (p, q, dmin) => { if (far(p, dmin)) { P.push(p[0], p[1]); Q.push(q[0], q[1]); } };
+  const fix = (p, dmin) => add(p, p, dmin);
   const eyes = ['eyeR', 'eyeL'].map((g) => eyeFrame(sh, g, ax));
   const inEye = (p, k) => eyes.some((e) => {
     const v = sub(p, e.c), x = dot(v, e.ex), y = v[0] * -e.ex[1] + v[1] * e.ex[0];
     return (x / (e.a * k)) ** 2 + (y / (e.b * k)) ** 2 < 1;
   });
-  const anchors = [];
-  // 輪郭：取っ手の外側と内側に固定点を置き、変形を輪郭の周りの帯に収める（内側の点は目・鼻・口を動かさないため）
-  const f = faceFrame(sh, ax), u = ax.u, n = ax.n;
-  for (const h of sh.handles) {
-    if (h.group !== 'face') continue;
-    const v = sub(h.r, f.c);
-    anchors.push([h.r[0] + v[0] * 0.35, h.r[1] + v[1] * 0.35]);
-    const inner = [f.c[0] + v[0] * 0.5, f.c[1] + v[1] * 0.5];
-    if (!inEye(inner, 1.8)) anchors.push(inner);
+  const minD = Math.max(4, Math.min(...eyes.map((e) => Math.min(e.a, e.b))) * 0.3);
+  // 動く曲線：輪郭（開いた曲線）と、左右のアイホール（閉じた曲線）
+  const face = outlineOrder(sh, 'face');
+  const fr = curve(face.map((h) => h.r), false, FACE_SEG), fq = curve(face.map((h) => moved(sh, h, ax)), false, FACE_SEG);
+  fr.forEach((p, i) => add(p, fq[i], 2));
+  const eyeRest = [];
+  for (const gid of ['eyeR', 'eyeL']) {
+    const hs = outlineOrder(sh, gid);
+    const er = curve(hs.map((h) => h.r), true, EYE_SEG).slice(0, -1), eq = curve(hs.map((h) => moved(sh, h, ax)), true, EYE_SEG);
+    er.forEach((p, i) => add(p, eq[i], 2));
+    eyeRest.push(er);
   }
-  const at = (a, s) => [f.c[0] + u[0] * a * f.ry + n[0] * s * f.rx, f.c[1] + u[1] * a * f.ry + n[1] * s * f.rx];
-  anchors.push(f.c, at(-0.95, 0), at(-0.75, -0.6), at(-0.75, 0.6), at(-1.3, 0), at(-0.95, -1.1), at(-0.95, 1.1));
-  // アイホール：アイの部分（中心の周り）と、アイホールの外側に固定点を置く
-  for (const [gi, gid] of ['eyeR', 'eyeL'].entries()) {
-    const e = eyes[gi];
-    anchors.push(e.c);
-    for (const h of sh.handles) if (h.group === gid) anchors.push([e.c[0] + (h.r[0] - e.c[0]) * 0.45, e.c[1] + (h.r[1] - e.c[1]) * 0.45]);
+  const nMove = P.length;
+  // アイホール：アイの部分（中心と、縁を縮めた輪）と、アイホールの外側の輪を固定する
+  for (const [gi, e] of eyes.entries()) {
+    fix(e.c, minD);
+    eyeRest[gi].forEach((p, k) => { if (k % 2 === 0) fix([e.c[0] + (p[0] - e.c[0]) * EYE_IN, e.c[1] + (p[1] - e.c[1]) * EYE_IN], minD); });
     const ey = [-e.ex[1], e.ex[0]];
-    for (let k = 0; k < 8; k++) {
-      const t = (k / 8) * Math.PI * 2, x = Math.cos(t) * e.a * 1.6, y = Math.sin(t) * e.b * 1.9;
-      anchors.push([e.c[0] + e.ex[0] * x + ey[0] * y, e.c[1] + e.ex[1] * x + ey[1] * y]);
+    for (let k = 0; k < 12; k++) {
+      const t = (k / 12) * Math.PI * 2, x = Math.cos(t) * e.a * EYE_OUT[0], y = Math.sin(t) * e.b * EYE_OUT[1];
+      fix([e.c[0] + e.ex[0] * x + ey[0] * y, e.c[1] + e.ex[1] * x + ey[1] * y], minD);
     }
   }
-  // 取っ手のすぐ近くの固定点は外す（取っ手を動かしたときに、近くで急に引き止められないように）
-  const minD = Math.min(...eyes.map((e) => Math.min(e.a, e.b))) * 0.3;
-  for (const p of anchors) {
-    let near = false;
-    for (let i = 0; i < nH && !near; i++) near = Math.hypot(P[2 * i] - p[0], P[2 * i + 1] - p[1]) < minD;
-    if (!near) fix(p);
+  // 輪郭：顔の中心へ縮めた線と、外へ広げた線の上を固定する（間の帯の中で変形する。内側は目・鼻・口を動かさないため）
+  const f = faceFrame(sh, ax), u = ax.u, n = ax.n;
+  fix(f.c, minD);
+  const scaled = (k) => fr.map((p) => [f.c[0] + (p[0] - f.c[0]) * k, f.c[1] + (p[1] - f.c[1]) * k]);
+  for (const p of scaled(FACE_IN)) if (!inEye(p, 1.8)) fix(p, minD);
+  for (const p of scaled(FACE_OUT)) fix(p, minD);
+  // 鼻・口のあたり（中心線の上と、その左右）。あごの近くまで固定し、あごを動かしても口が動かないようにする
+  for (const [a, s] of [[0.3, 0], [0.55, 0], [0.75, 0], [0.75, -0.22], [0.75, 0.22], [0.55, -0.3], [0.55, 0.3]]) {
+    fix([f.c[0] + u[0] * a * f.ry + n[0] * s * f.rx, f.c[1] + u[1] * a * f.ry + n[1] * s * f.rx], minD);
   }
+  // 額（輪郭の曲線はこめかみまでのため）
+  const at = (a, s) => [f.c[0] + u[0] * a * f.ry + n[0] * s * f.rx, f.c[1] + u[1] * a * f.ry + n[1] * s * f.rx];
+  for (const p of [at(-0.95, 0), at(-0.75, -0.6), at(-0.75, 0.6), at(-1.3, 0), at(-0.95, -1.1), at(-0.95, 1.1)]) fix(p, minD);
   let identity = true;
-  for (let i = 0; i < nH * 2 && identity; i++) if (Math.abs(P[i] - Q[i]) > 0.01) identity = false;
-  // 計算する範囲：制御点を囲む矩形を少し広げる（縁に向かって変形を弱める）
+  for (let i = 0; i < nMove && identity; i++) if (Math.abs(P[i] - Q[i]) > 0.01) identity = false;
+  // 計算する範囲：固定点を囲む矩形を少し広げる。範囲の縁にも固定点を置き、縁に向かって変形を弱める
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (let i = 0; i < P.length; i += 2) for (const A of [P, Q]) {
-    x0 = Math.min(x0, A[i]); x1 = Math.max(x1, A[i]); y0 = Math.min(y0, A[i + 1]); y1 = Math.max(y1, A[i + 1]);
+  for (let i = 0; i < P.length; i += 2) {
+    x0 = Math.min(x0, P[i]); x1 = Math.max(x1, P[i]); y0 = Math.min(y0, P[i + 1]); y1 = Math.max(y1, P[i + 1]);
   }
-  const band = Math.max(x1 - x0, y1 - y0) * 0.12;
-  return { P: Float64Array.from(P), Q: Float64Array.from(Q), box: { x0: x0 - band, y0: y0 - band, x1: x1 + band, y1: y1 + band, band }, identity };
+  const band = Math.max(x1 - x0, y1 - y0) * 0.08;
+  const box = { x0: x0 - band, y0: y0 - band, x1: x1 + band, y1: y1 + band, band };
+  for (let k = 0; k < 4; k++) {
+    const t = k / 4;
+    for (const p of [[box.x0 + (box.x1 - box.x0) * t, box.y0], [box.x1, box.y0 + (box.y1 - box.y0) * t],
+      [box.x1 - (box.x1 - box.x0) * t, box.y1], [box.x0, box.y1 - (box.y1 - box.y0) * t]]) fix(p, 1);
+  }
+  return { P: Float64Array.from(P), Q: Float64Array.from(Q), box, identity };
 }
 
 // ---------------- 表示用の曲線 ----------------

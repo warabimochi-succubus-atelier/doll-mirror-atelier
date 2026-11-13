@@ -7,7 +7,7 @@
 import * as G from './geom.js';
 import * as IM from './imaging.js';
 import * as SH from './shape.js';
-import { Warper, mls, fadeAt } from './warp.js';
+import { Warper, Tps, fadeAt } from './warp.js';
 
 const UNDO_MAX = 100;
 
@@ -100,11 +100,23 @@ export class Sim {
   setAngle(deg) { this.cap.angle = deg; this.touchDeform(); }
 
   // ---------------- 形の変更 ----------------
-  /** 変形の制御点（形の変更が変わったときだけ作り直す） */
+  /**
+   * 変形の制御点と TPS（形の変更が変わったときだけ作り直す）。
+   * 制御点の並び（元の位置）が前と同じなら TPS の準備を使い回し、動かした量だけ解き直す
+   */
   controls() {
     if (this._ctl && this._ctlVer === this.deformVer) return this._ctl;
-    this._ctl = SH.controls(this.shape, this.ax); this._ctlVer = this.deformVer;
-    return this._ctl;
+    const c = SH.controls(this.shape, this.ax);
+    if (!c.identity) {
+      const t = this._tps;
+      const same = t && t.P.length === c.P.length && t.P.every((v, i) => v === c.P[i]);
+      try {
+        this._tps = same ? t : new Tps(c.P);
+        c.tps = this._tps.solve(c.Q);
+      } catch { c.identity = true; this._tps = null; } // 制御点が重なって解けない場合は変形しない
+    }
+    this._ctl = c; this._ctlVer = this.deformVer;
+    return c;
   }
   /** 点 p の変形による移動量 */
   disp(p) {
@@ -112,15 +124,15 @@ export class Sim {
     if (c.identity) return [0, 0];
     const f = fadeAt(c.box, p[0], p[1]);
     if (!f) return [0, 0];
-    const q = mls(c.P, c.Q, p[0], p[1]);
-    return [(q[0] - p[0]) * f, (q[1] - p[1]) * f];
+    const d = c.tps.dispInto(p[0], p[1], [0, 0]);
+    return [d[0] * f, d[1] * f];
   }
   /** 表示用の変形した画像（WebGL の canvas。取り込み画像の上に重ねて描く。変形がなければ null） */
   deformedView() {
     const c = this.controls();
     if (c.identity) return null;
     if (this._view && this._viewVer === this.deformVer) return this._view;
-    this._view = this.warper.render(this.cap.canvas, c.P, c.Q, c.box); this._viewVer = this.deformVer;
+    this._view = this.warper.render(this.cap.canvas, c.tps, c.box); this._viewVer = this.deformVer;
     return this._view;
   }
   /** 形の変更を当てた画像（2D の canvas。パーツの抽出に使う） */

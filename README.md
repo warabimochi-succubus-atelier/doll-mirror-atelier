@@ -42,7 +42,7 @@ http://localhost:8766/ を開きます。カメラの無い PC では http://loc
 | `js/camera.js` | カメラ映像・ズーム・取り込み・画面の消灯防止 |
 | `js/sim.js` | シミュレーション（パーツ移動・形の変更）の内容と描画、取り消し |
 | `js/shape.js` | 形の変更の内容（取っ手・スライダー・左右対称・左右コピー、変形の制御点） |
-| `js/warp.js` | 形の変更の変形（MLS）と描画（WebGL、使えない場合は画素ごと） |
+| `js/warp.js` | 形の変更の変形（TPS：Thin Plate Spline）と描画（WebGL、使えない場合は画素ごと） |
 | `js/imaging.js` | 画像の処理（輪郭の抽出・鮮明さ・照明の判定・メイク成分の抽出） |
 | `js/geom.js` | 座標計算（行列・中心線・多角形） |
 | `js/settings.js` | アプリの設定（localStorage） |
