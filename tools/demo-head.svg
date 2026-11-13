@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 640" width="1080" height="1920">
+  <!-- 開発用：カメラの無い環境で動作を確かめるための映像（index.html?demo で使う）。画面モックのヘッドの図と同じ -->
+  <defs>
+    <radialGradient id="g-skin" cx="45%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#fbe9e1"/><stop offset=".7" stop-color="#f1d3c8"/><stop offset="1" stop-color="#dfb8ab"/>
+    </radialGradient>
+    <linearGradient id="g-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9d4d8"/><stop offset="1" stop-color="#b9b2b7"/>
+    </linearGradient>
+    <radialGradient id="g-iris" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#c86f8c"/><stop offset=".6" stop-color="#7d3a5c"/><stop offset="1" stop-color="#3b1d2e"/>
+    </radialGradient>
+    
+
+    </defs>
+      <rect width="360" height="640" fill="url(#g-bg)"/>
+      <rect x="142" y="440" width="76" height="200" rx="10" fill="#8c8287"/>
+      <path d="M58 292 C58 190 118 146 180 146 C242 146 302 190 302 292 C302 384 244 452 180 462 C116 452 58 384 58 292Z" fill="url(#g-skin)"/>
+      <!-- チーク -->
+      <ellipse cx="112" cy="372" rx="30" ry="16" fill="#f19aa6" opacity=".45"/>
+      <ellipse cx="250" cy="368" rx="30" ry="16" fill="#f19aa6" opacity=".45"/>
+      <!-- 眉 -->
+      <path d="M100 272 Q128 258 158 268" stroke="#9a6a58" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M202 260 Q232 246 262 258" stroke="#9a6a58" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <!-- アイホールとアイ -->
+      <ellipse cx="128" cy="318" rx="28" ry="26" fill="#3a2a2e"/>
+      <ellipse cx="128" cy="320" rx="22" ry="22" fill="url(#g-iris)"/>
+      <circle cx="120" cy="311" r="5" fill="#fff"/>
+      <ellipse cx="232" cy="318" rx="28" ry="26" fill="#3a2a2e"/>
+      <ellipse cx="232" cy="320" rx="22" ry="22" fill="url(#g-iris)"/>
+      <circle cx="224" cy="311" r="5" fill="#fff"/>
+      <!-- アイライン -->
+      <path d="M98 308 Q128 284 158 306" stroke="#3b2328" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M202 306 Q232 284 264 304" stroke="#3b2328" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- 鼻・口 -->
+      <path d="M176 372 Q180 377 184 372" stroke="#c99486" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M170 408 Q180 416 190 408" stroke="#d47c88" stroke-width="3" fill="#e49aa4" stroke-linecap="round"/>
+    </svg>

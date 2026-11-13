@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "mock", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8766"], "port": 8766 }
+    { "name": "app", "runtimeExecutable": "python", "runtimeArgs": ["tools/dev-server.py", "8766"], "port": 8766 }
   ]
 }
