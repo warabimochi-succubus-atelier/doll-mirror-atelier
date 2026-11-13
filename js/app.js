@@ -1,5 +1,5 @@
 // Doll Mirror Atelier：画面の切り替えと操作
-// 画面：カメラ（ホーム）・顔位置設定・ミラー・シミュレーション（パーツ移動／形の変更）・設定・設置ガイド
+// 画面：カメラ（ホーム）・顔位置設定・ミラー・シミュレーション（パーツ移動）・設定・設置ガイド
 // 仕様書「画面構成と操作の流れ」を参照
 
 import * as G from './geom.js';
@@ -7,7 +7,6 @@ import * as IM from './imaging.js';
 import { cam } from './camera.js';
 import { settings, save, LINE_COLORS } from './settings.js';
 import { Sim, partLabel, copySide } from './sim.js';
-import * as SH from './shape.js';
 import { $, $$, esc, toast, choose } from './ui.js';
 /* global APP_VERSION */
 
@@ -27,9 +26,7 @@ const S = {
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 取り込み（待ち時間）中の番号。画面を離れたら取りやめる
   // シミュレーション画面
-  tab: 'parts', view: null, before: false, mode: null, big: false, tBig: false,
-  // 形の変更：対象（face / eyeR / eyeL）、操作（fit 位置合わせ / deform 変形）、左右対称、変形する側（左右対称でないとき）、選んだ取っ手
-  tSel: 'face', tMode: 'fit', tSym: true, tSide: 'R', tHandle: null, dirty: true,
+  view: null, before: false, mode: null, big: false, dirty: true,
   checks: { light: 0, sharp: null, t: 0 },
 };
 const edgeCache = new WeakMap();
@@ -50,8 +47,7 @@ function show(s) {
   S.screen = s;
   document.body.dataset.screen = s;
   $$('[data-show]').forEach((el) => {
-    const on = el.dataset.show.split(' ').includes(s);
-    el.hidden = !on || (el.dataset.tabpanel ? el.dataset.tabpanel !== S.tab : false);
+    el.hidden = !el.dataset.show.split(' ').includes(s);
   });
   $('#bar-title').textContent = TITLES[s] || '';
   if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら取り込みをやめる
@@ -364,20 +360,12 @@ function renderChips() {
   }
   if (S.screen === 'sim' && S.sim) {
     if (S.before) chips.push('<span class="pill bad">修正前を表示中</span>');
-    if (S.tab === 'parts') {
-      const p = S.sim.selPart;
-      if (S.mode === 'lasso') chips.push('<span class="pill">指でなぞって、パーツにする範囲を囲んでください</span>');
-      else if (S.mode === 'relasso') chips.push('<span class="pill">選択範囲を囲み直してください</span>');
-      else if (S.mode === 'redest') chips.push('<span class="pill">もとからあるメイクを薄くする・消す範囲を囲んでください</span>');
-      else if (S.mode === 'pivot') chips.push('<span class="pill">回転の支点にする位置をタップしてください</span>');
-      else if (p) chips.push(`<span class="pill">${esc(partLabel(p.name))}を編集中</span>`);
-    } else {
-      chips.push(`<span class="pill">${esc(SH.groupLabel(S.tSel))}</span>`);
-      if (S.tMode === 'fit') chips.push('<span class="pill">位置合わせ中（変形前の画像を表示）</span>');
-      const h = selHandle();
-      const kind = h && S.tMode === 'deform' ? SH.kindOf(S.sim.shape, h, S.sim.ax) : null;
-      if (kind) chips.push(`<span class="pill ${kind === '削り' ? 'cut' : 'putty'}">${esc(h.label)}：${kind}</span>`);
-    }
+    const p = S.sim.selPart;
+    if (S.mode === 'lasso') chips.push('<span class="pill">指でなぞって、パーツにする範囲を囲んでください</span>');
+    else if (S.mode === 'relasso') chips.push('<span class="pill">選択範囲を囲み直してください</span>');
+    else if (S.mode === 'redest') chips.push('<span class="pill">もとからあるメイクを薄くする・消す範囲を囲んでください</span>');
+    else if (S.mode === 'pivot') chips.push('<span class="pill">回転の支点にする位置をタップしてください</span>');
+    else if (p) chips.push(`<span class="pill">${esc(partLabel(p.name))}を編集中</span>`);
   }
   const html = chips.join('');
   const el = $('#chips');
@@ -559,8 +547,7 @@ function updateMirror() {
   if (S.mirror.which === 'after' && S.sim) {
     const msgs = [];
     const basisSide = S.mirror.basis === 'left' ? 1 : -1;
-    const other = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === -basisSide)
-      || [...S.sim.changedSides()].some((s) => s === -basisSide || s === 0);
+    const other = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === -basisSide);
     if (other) msgs.push('基準でない側の修正は表示されません。両側の修正をあわせて見るには、シミュレーション画面を使ってください。');
     msgs.push(`修正後の画像は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の取り込み画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
     note.innerHTML = msgs.map(esc).join('<br>');
@@ -604,20 +591,20 @@ document.addEventListener('click', (e) => {
 // ======================================================================
 async function openSim() {
   if (S.sim && S.sim.hasContent) {
-    const sim = S.sim, nParts = sim.parts.length, nT = sim.changedGroups().length;
+    const sim = S.sim, nParts = sim.parts.length;
     const r = await choose({
       title: 'シミュレーション',
-      html: `<p>前回のシミュレーション（パーツ ${nParts}つ・形の変更 ${nT}か所、${hhmm(sim.cap.time)} に取り込み）があります。</p>`,
+      html: `<p>前回のシミュレーション（パーツ ${nParts}つ、${hhmm(sim.cap.time)} に取り込み）があります。</p>`,
       choices: [
-        { value: 'continue', label: '続きから', desc: '前回の取り込み画像と、パーツ移動・形の変更、取り消しの履歴をそのまま使います。' },
-        { value: 'new', label: '取り直して新しく始める', desc: '今の映像を取り込みます。前回のパーツ移動・形の変更と履歴は消えます。' },
+        { value: 'continue', label: '続きから', desc: '前回の取り込み画像と、パーツ移動、取り消しの履歴をそのまま使います。' },
+        { value: 'new', label: '取り直して新しく始める', desc: '今の映像を取り込みます。前回のパーツ移動と履歴は消えます。' },
       ],
     });
     if (r === 'continue') { go('sim'); return; }
     if (r !== 'new') return;
     const ok = await choose({
       title: '前回のシミュレーションを消しますか',
-      html: '<p>パーツ移動・形の変更と、取り消しの履歴が消えます。元に戻せません。</p>',
+      html: '<p>パーツ移動と、取り消しの履歴が消えます。元に戻せません。</p>',
       choices: [{ value: 'yes', label: '消して取り直す', danger: true }],
     });
     if (ok !== 'yes') return;
@@ -626,16 +613,10 @@ async function openSim() {
   const cap = await capture();
   if (!cap) return;
   S.sim = new Sim(cap);
-  S.view = null; S.tab = 'parts'; S.tSel = 'face'; S.tMode = 'fit'; S.tHandle = null;
+  S.view = null;
   go('sim');
 }
 $('#btn-sim-mirror').addEventListener('click', () => openMirror('after'));
-$$('.tabs [data-tab]').forEach((b) => b.addEventListener('click', () => {
-  S.tab = b.dataset.tab; S.mode = null;
-  $$('.tabs [data-tab]').forEach((x) => x.classList.toggle('on', x === b));
-  $$('[data-tabpanel]').forEach((p) => (p.hidden = p.dataset.tabpanel !== S.tab));
-  updateSimPanel();
-}));
 
 // ---------------- 表示（拡大・移動） ----------------
 function fitView() {
@@ -661,26 +642,23 @@ function drawSim() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#1b1517'; ctx.fillRect(0, 0, W, H);
   ctx.imageSmoothingQuality = 'high';
-  // 形の変更の位置合わせ中は、変形前の画像（取り込み画像）に取っ手を合わせる
-  sim.render(ctx, V, S.before || (S.tab === 'shape' && S.tMode === 'fit'));
+  sim.render(ctx, V, S.before);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   drawGuides(G.mul(V), sim.cap.w, sim.cap.h, sim.cap.angle, false);
   if (S.before) { renderChips(); return; }
-  if (S.tab === 'parts') {
-    const p = sim.selPart;
-    for (const q of sim.parts) if (q !== p && q.visible) outlinePart(q, V, 'rgba(255,255,255,.45)', [3, 3]);
-    if (p) {
-      // コピー先の消す範囲（もとからあるメイクを薄くする・消す範囲）。「残す」では使わないため表示しない
-      if (p.copy) { if (p.origin !== 'keep') polyPath(sim.warp(sim.destPoly(p)).map((q) => G.ap(V, q)), 'rgba(255,211,107,.8)', [4, 3]); }
-      else polyPath(sim.warp(p.poly).map((q) => G.ap(V, q)), 'rgba(255,255,255,.7)', [4, 3]);
-      outlinePart(p, V, '#e08ba1', null);
-      const { piv } = sim.frame(p);
-      const c = G.ap(V, [piv[0] + p.t.tx, piv[1] + p.t.ty]), r = 6 * DPR();
-      ctx.strokeStyle = '#ffd36b'; ctx.lineWidth = 2 * DPR();
-      ctx.beginPath(); ctx.arc(c[0], c[1], r, 0, Math.PI * 2); ctx.stroke();
-      line([c[0] - 2 * r, c[1]], [c[0] + 2 * r, c[1]], '#ffd36b', 2); line([c[0], c[1] - 2 * r], [c[0], c[1] + 2 * r], '#ffd36b', 2);
-    }
-  } else drawShapeOverlay(V);
+  const p = sim.selPart;
+  for (const q of sim.parts) if (q !== p && q.visible) outlinePart(q, V, 'rgba(255,255,255,.45)', [3, 3]);
+  if (p) {
+    // コピー先の消す範囲（もとからあるメイクを薄くする・消す範囲）。「残す」では使わないため表示しない
+    if (p.copy) { if (p.origin !== 'keep') polyPath(sim.destPoly(p).map((q) => G.ap(V, q)), 'rgba(255,211,107,.8)', [4, 3]); }
+    else polyPath(p.poly.map((q) => G.ap(V, q)), 'rgba(255,255,255,.7)', [4, 3]);
+    outlinePart(p, V, '#e08ba1', null);
+    const { piv } = sim.frame(p);
+    const c = G.ap(V, [piv[0] + p.t.tx, piv[1] + p.t.ty]), r = 6 * DPR();
+    ctx.strokeStyle = '#ffd36b'; ctx.lineWidth = 2 * DPR();
+    ctx.beginPath(); ctx.arc(c[0], c[1], r, 0, Math.PI * 2); ctx.stroke();
+    line([c[0] - 2 * r, c[1]], [c[0] + 2 * r, c[1]], '#ffd36b', 2); line([c[0], c[1] - 2 * r], [c[0], c[1] + 2 * r], '#ffd36b', 2);
+  }
   if (G_.lasso) polyPath(G_.lasso.map((q) => G.ap(V, q)), '#fff', null, false);
   renderChips();
 }
@@ -695,68 +673,8 @@ function outlinePart(p, V, color, dash) {
   polyPath(pts, color, dash);
 }
 
-// ---------------- 形の変更：取っ手と輪郭の表示 ----------------
-const HANDLE_HIT = 24; // 取っ手に触れたとみなす距離（画面の px）
-const selHandle = () => (S.sim && S.tHandle ? SH.handleOf(S.sim.shape, S.tHandle) : null);
-/** 取っ手を表示する位置（位置合わせ中は元の位置、変形中は変形後の位置。画像の座標） */
-const handlePos = (h) => (S.tMode === 'fit' ? h.r : SH.moved(S.sim.shape, h, S.sim.ax));
-/** 位置合わせ中のアイホールの「全体を動かす」印の位置 */
-const eyeCenter = (gid) => SH.eyeFrame(S.sim.shape, gid, S.sim.ax).c;
-
-function drawShapeOverlay(V) {
-  const sim = S.sim, sh = sim.shape, ax = sim.ax, k = DPR();
-  for (const g of SH.GROUPS) {
-    const hs = SH.outlineOrder(sh, g.id), closed = g.id !== 'face', cur = g.id === S.tSel;
-    const rest = SH.curve(hs.map((h) => h.r), closed).map((q) => G.ap(V, q));
-    if (S.tMode === 'fit') { polyPath(rest, cur ? 'rgba(255,211,107,.95)' : 'rgba(255,211,107,.4)', [5, 4], closed); continue; }
-    // 変形中：点線は元の輪郭、実線は変形後の輪郭
-    if (SH.changed(sh, ax, g.id)) polyPath(rest, 'rgba(255,255,255,.55)', [4, 4], closed);
-    polyPath(SH.curve(hs.map((h) => SH.moved(sh, h, ax)), closed).map((q) => G.ap(V, q)), cur ? '#8fd3ff' : 'rgba(143,211,255,.45)', null, closed);
-  }
-  // 選んでいる対象の取っ手
-  for (const h of sh.handles) {
-    if (h.group !== S.tSel) continue;
-    const p = G.ap(V, handlePos(h)), kind = S.tMode === 'deform' ? SH.kindOf(sh, h, ax) : null, on = h.id === S.tHandle;
-    ctx.beginPath(); ctx.arc(p[0], p[1], (on ? 8 : 6) * k, 0, Math.PI * 2);
-    ctx.fillStyle = kind === '削り' ? '#2f5f9c' : kind === 'パテ盛り' ? '#9a5a1c' : S.tMode === 'fit' ? '#ffd36b' : '#fff';
-    ctx.fill();
-    ctx.strokeStyle = on ? '#ff5ca8' : 'rgba(20,14,16,.75)'; ctx.lineWidth = (on ? 3 : 1.5) * k; ctx.stroke();
-  }
-  // 位置合わせ中のアイホール：中央の印でまとめて動かす
-  if (S.tMode === 'fit' && S.tSel !== 'face') {
-    const c = G.ap(V, eyeCenter(S.tSel)), r = 9 * k;
-    line([c[0] - r, c[1]], [c[0] + r, c[1]], '#ffd36b', 2.5); line([c[0], c[1] - r], [c[0], c[1] + r], '#ffd36b', 2.5);
-  }
-}
-/** 画面上の点 p（画面の座標）にある取っ手。'center' はアイホールの全体を動かす印 */
-function hitHandle(p) {
-  const V = viewM(), sh = S.sim.shape, lim = HANDLE_HIT * DPR();
-  let best = null, bd = lim;
-  for (const h of sh.handles) {
-    if (h.group !== S.tSel) continue;
-    const q = G.ap(V, handlePos(h)), d = Math.hypot(q[0] - p[0], q[1] - p[1]);
-    if (d < bd) { bd = d; best = h.id; }
-  }
-  if (!best && S.tMode === 'fit' && S.tSel !== 'face') {
-    const c = G.ap(V, eyeCenter(S.tSel));
-    if (Math.hypot(c[0] - p[0], c[1] - p[1]) < lim) return 'center';
-  }
-  return best;
-}
-/** 取っ手を delta（画像の座標）だけ動かす。base は動かし始めの状態（null なら今の状態から） */
-function moveHandle(id, delta, base) {
-  const sim = S.sim, sh = sim.shape, ax = sim.ax;
-  if (id === 'center') SH.moveGroupRest(sh, S.tSel, base ? [delta[0] - base.acc[0], delta[1] - base.acc[1]] : delta, ax, S.tSym);
-  else {
-    const h = SH.handleOf(sh, id), o = base ? base[S.tMode === 'fit' ? 'r' : 'd'] : (S.tMode === 'fit' ? h.r : h.d);
-    const v = [o[0] + delta[0], o[1] + delta[1]];
-    if (S.tMode === 'fit') SH.setRest(sh, id, v, ax, S.tSym); else SH.setD(sh, id, v, ax, S.tSym);
-  }
-  if (base && id === 'center') base.acc = delta.slice();
-}
-
 // ---------------- 画面の操作（ドラッグ・ピンチ） ----------------
-// 1本指：パーツの上ならパーツを動かす、影響範囲の中なら輪郭を押す、それ以外は画面を動かす
+// 1本指：パーツの上ならパーツを動かす、それ以外は画面を動かす
 // 2本指：パーツを動かしている途中ならパーツの回転・拡大縮小、それ以外は画面の拡大・移動
 const pts = new Map();
 const G_ = { kind: null, lasso: null };
@@ -792,33 +710,18 @@ stage.addEventListener('pointerdown', (e) => {
       if (sp) { sim.begin(); sim.setPivot(sp, toPivotSpace(sp, q)); }
       S.mode = null; G_.kind = null; updateSimPanel(); S.dirty = true; return;
     }
-    if (S.tab === 'parts') {
-      const hit = sim.selPart && sim.hit(sim.selPart, q) ? sim.selPart : [...sim.parts].reverse().find((x) => x.visible && sim.hit(x, q));
-      if (hit) {
-        if (sim.sel !== hit.id) { sim.sel = hit.id; updateSimPanel(); }
-        sim.begin(); G_.kind = 'part'; G_.t0 = { ...hit.t }; G_.q0 = q;
-        S.dirty = true; return;
-      }
-    } else {
-      // 形の変更：取っ手に触れたらその取っ手を動かす（それ以外は画面の移動）
-      const id = hitHandle(p);
-      if (id) {
-        sim.begin(); G_.kind = 'handle'; G_.h = id; G_.q0 = q;
-        const h = id === 'center' ? null : SH.handleOf(sim.shape, id);
-        G_.base = h ? { r: h.r.slice(), d: h.d.slice() } : { acc: [0, 0] };
-        if (id !== 'center') S.tHandle = id;
-        updateSimPanel(); S.dirty = true; return;
-      }
+    const hit = sim.selPart && sim.hit(sim.selPart, q) ? sim.selPart : [...sim.parts].reverse().find((x) => x.visible && sim.hit(x, q));
+    if (hit) {
+      if (sim.sel !== hit.id) { sim.sel = hit.id; updateSimPanel(); }
+      sim.begin(); G_.kind = 'part'; G_.t0 = { ...hit.t }; G_.q0 = q;
+      S.dirty = true; return;
     }
     G_.kind = 'pan';
   } else if (pts.size === 2) {
     const [a, b] = [...pts.values()];
     G_.p0 = { a, b, d: Math.hypot(b[0] - a[0], b[1] - a[1]), ang: Math.atan2(b[1] - a[1], b[0] - a[0]), mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] };
     if (G_.kind === 'part') { G_.kind = 'partPinch'; G_.t0 = { ...sim.selPart.t }; }
-    else {
-      if (G_.kind === 'handle') endHandle();
-      G_.kind = 'pinch'; G_.lasso = null; G_.v0 = { ...S.view };
-    }
+    else { G_.kind = 'pinch'; G_.lasso = null; G_.v0 = { ...S.view }; }
   }
 });
 stage.addEventListener('pointermove', (e) => {
@@ -852,10 +755,6 @@ stage.addEventListener('pointermove', (e) => {
       const sp = sim.selPart;
       sp.t.tx = G_.t0.tx + q[0] - G_.q0[0]; sp.t.ty = G_.t0.ty + q[1] - G_.q0[1];
       sim.touch(); S.dirty = true;
-    } else if (G_.kind === 'handle') {
-      // 指の動きに合わせて画像の変形だけを描き直す（パーツの抽出は指を離したときにやり直す）
-      moveHandle(G_.h, [q[0] - G_.q0[0], q[1] - G_.q0[1]], G_.base);
-      sim.touchDeform(true); S.dirty = true;
     } else if (G_.kind === 'pan') {
       S.view.x += p[0] - G_.last[0]; S.view.y += p[1] - G_.last[1]; S.view.auto = false; S.dirty = true;
     }
@@ -903,7 +802,6 @@ function endPointer(e) {
   G_.kind = null; G_.p0 = null;
   if (k === 'lasso') finishLasso();
   else if (k === 'part') { if (!G_.moved) sim.cancel(); updateSimPanel(); }
-  else if (k === 'handle') { G_.kind = 'handle'; endHandle(); G_.kind = null; }
   else if (k === 'partPinch') updateSimPanel();
   S.dirty = true;
 }
@@ -921,13 +819,6 @@ function toPivotSpace(p, q) {
   const { piv, a } = S.sim.frame(p), t = p.t;
   const M = G.mul(G.T(piv[0] + t.tx, piv[1] + t.ty), G.R(t.rot), G.R(a), G.S(t.sl, t.st), G.R(-a), G.T(-piv[0], -piv[1]));
   return G.ap(G.inv(M), q);
-}
-
-/** 取っ手のドラッグを終える：動かしていなければ履歴から外し、パーツの抽出を今の変形に合わせる */
-function endHandle() {
-  const sim = S.sim;
-  if (!G_.moved) sim.cancel();
-  sim.settle(); updateSimPanel(); S.dirty = true;
 }
 
 async function finishLasso() {
@@ -962,99 +853,40 @@ async function finishLasso() {
 function updateSimPanel() {
   const sim = S.sim;
   if (!sim) return;
-  $$('.tabs [data-tab]').forEach((x) => x.classList.toggle('on', x.dataset.tab === S.tab));
-  $$('[data-tabpanel]').forEach((x) => (x.hidden = S.screen !== 'sim' || x.dataset.tabpanel !== S.tab));
   $('#btn-undo').disabled = !sim.undoStack.length;
   $('#btn-redo').disabled = !sim.redoStack.length;
-  if (S.tab === 'parts') {
-    $('#parts').innerHTML = sim.parts.map((p) => `<button class="part ${p.id === sim.sel ? 'on' : ''} ${p.visible ? '' : 'off'}" data-id="${p.id}">${esc(partLabel(p.name))}</button>`).join('');
-    $('#parts-empty').hidden = sim.parts.length > 0;
-    $('#btn-lasso').setAttribute('aria-pressed', String(S.mode === 'lasso'));
-    const p = sim.selPart;
-    $('#part-ctl').hidden = !p;
-    if (p) {
-      $('#part-name').textContent = partLabel(p.name);
-      $('#part-vis').textContent = p.visible ? '非表示' : '表示';
-      const i = sim.parts.indexOf(p);
-      $('#part-up').disabled = i === sim.parts.length - 1;
-      $('#part-down').disabled = i === 0;
-      setSeg('#origin', p.origin);
-      $('#origin-lbl').textContent = p.copy ? 'コピー先' : '元の位置';
-      $('#feather').value = p.feather;
-      $('#strength').value = Math.round(p.strength * 100);
-      const cs = copySide(p);
-      $('#btn-copy').textContent = cs ? `${cs === 'L' ? '左（画面右側）' : '右（画面左側）'}へコピー` : '左右コピーの対象外（中央のパーツ）';
-      $('#btn-copy').disabled = !cs;
-      $('#btn-pivot').setAttribute('aria-pressed', String(S.mode === 'pivot'));
-      // コピーしたパーツ：もとからあるメイクを薄くする・消す範囲を囲み直す（「残す」では範囲を使わないため出さない）
-      $('#btn-relasso').textContent = p.copy ? '消す範囲を囲み直す' : '囲み直す';
-      $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
-      $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
-      $('#step-size').textContent = S.big ? '大' : '小';
-      const notes = [];
-      if (p.copy && p.origin === 'keep') notes.push('「コピー先」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
-      else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
-      if (!p.visible) notes.push('非表示のパーツは、ミラーの修正後の画像にも含めません。');
-      $('#part-note').textContent = notes.join(' ');
-    }
-  } else {
-    const sh = sim.shape, ax = sim.ax, face = S.tSel === 'face', fit = S.tMode === 'fit';
-    $('#t-sel').innerHTML = SH.GROUPS.map((g) => `<option value="${g.id}" ${g.id === S.tSel ? 'selected' : ''}>${esc(SH.groupLabel(g.id))}${SH.changed(sh, ax, g.id) ? '　●' : ''}</option>`).join('');
-    setSeg('#t-mode', S.tMode);
-    $('#t-sym').textContent = S.tSym ? 'ON' : 'OFF';
-    $('#t-sym').setAttribute('aria-pressed', String(S.tSym));
-    $('#t-sym-hint').textContent = S.tSym ? (face ? '反対側の取っ手も鏡のように動きます' : '反対側のアイホールも鏡のように動きます') : '';
-    $('#t-side-row').hidden = fit || !face || S.tSym;
-    setSeg('#t-side', S.tSide);
-    $('#t-hint').textContent = fit
-      ? (face
-        ? 'まず、点（取っ手）をドラッグして、ヘッドの輪郭（こめかみ・頬・エラ・あご・あご先）に合わせます。位置合わせの間は画像を変形しません。'
-        : 'まず、点（取っ手）をドラッグして、アイホールの縁（目頭・上縁・目尻・下縁）に合わせます。中央の＋で全体を動かせます。位置合わせの間は画像を変形しません。')
-      : '取っ手をドラッグするか、スライダーで輪郭を動かします。白い点線は元の輪郭です。';
-    renderSliders(face, fit);
-    $('#t-step').textContent = S.tBig ? '大' : '小';
-    const h = selHandle();
-    $('#t-handle').textContent = h ? `選んだ取っ手：${h.label}${h.side === 'C' ? '' : `（${SH.sideLabel(h.side)}）`}。矢印で少しずつ${fit ? '位置を合わせます' : '動かします'}。` : '取っ手をタップして選ぶと、矢印で少しずつ動かせます。';
-    $('#t-copy').hidden = fit;
-    $('#t-copy2').hidden = fit || !face;
-    if (face) {
-      $('#t-copy').textContent = '右（画面左側）の変形を左へコピー'; $('#t-copy').dataset.from = 'R';
-      $('#t-copy2').textContent = '左（画面右側）の変形を右へコピー'; $('#t-copy2').dataset.from = 'L';
-    } else {
-      $('#t-copy').textContent = `${SH.groupLabel(SH.groupDef(S.tSel).pair)}へ変形をコピー`; delete $('#t-copy').dataset.from;
-    }
-    $('#t-reset').textContent = fit ? '取っ手の位置を初期に戻す' : 'この対象の変形をリセット';
-    const moved = sim.partsInDeform();
-    $('#t-parts-note').hidden = !moved.length;
-    $('#t-parts-note').textContent = moved.length ? `${moved.map((p) => `「${partLabel(p.name)}」`).join('')}は、形の変更に合わせて動きました。` : '';
+  $('#parts').innerHTML = sim.parts.map((p) => `<button class="part ${p.id === sim.sel ? 'on' : ''} ${p.visible ? '' : 'off'}" data-id="${p.id}">${esc(partLabel(p.name))}</button>`).join('');
+  $('#parts-empty').hidden = sim.parts.length > 0;
+  $('#btn-lasso').setAttribute('aria-pressed', String(S.mode === 'lasso'));
+  const p = sim.selPart;
+  $('#part-ctl').hidden = !p;
+  if (p) {
+    $('#part-name').textContent = partLabel(p.name);
+    $('#part-vis').textContent = p.visible ? '非表示' : '表示';
+    const i = sim.parts.indexOf(p);
+    $('#part-up').disabled = i === sim.parts.length - 1;
+    $('#part-down').disabled = i === 0;
+    setSeg('#origin', p.origin);
+    $('#origin-lbl').textContent = p.copy ? 'コピー先' : '元の位置';
+    $('#feather').value = p.feather;
+    $('#strength').value = Math.round(p.strength * 100);
+    const cs = copySide(p);
+    $('#btn-copy').textContent = cs ? `${cs === 'L' ? '左（画面右側）' : '右（画面左側）'}へコピー` : '左右コピーの対象外（中央のパーツ）';
+    $('#btn-copy').disabled = !cs;
+    $('#btn-pivot').setAttribute('aria-pressed', String(S.mode === 'pivot'));
+    // コピーしたパーツ：もとからあるメイクを薄くする・消す範囲を囲み直す（「残す」では範囲を使わないため出さない）
+    $('#btn-relasso').textContent = p.copy ? '消す範囲を囲み直す' : '囲み直す';
+    $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
+    $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
+    $('#step-size').textContent = S.big ? '大' : '小';
+    const notes = [];
+    if (p.copy && p.origin === 'keep') notes.push('「コピー先」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
+    else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
+    if (!p.visible) notes.push('非表示のパーツは、ミラーの修正後の画像にも含めません。');
+    $('#part-note').textContent = notes.join(' ');
   }
   renderChips();
 }
-/** 形の変更のスライダー（変形のときだけ表示する） */
-function renderSliders(face, fit) {
-  const box = $('#t-sliders');
-  if (fit) { box.innerHTML = ''; box.dataset.key = ''; return; }
-  const sh = S.sim.shape, side = S.tSym ? 'R' : S.tSide, list = SH.SLIDERS[face ? 'face' : 'eye'];
-  const key = `${S.tSel}/${side}`;
-  // 操作中に作り直すとスライダーの操作が途切れるため、対象・側が変わったときだけ作り直す
-  if (box.dataset.key !== key) {
-    box.dataset.key = key;
-    box.innerHTML = list.map((s) => `
-      <div class="row slider-row">
-        <span class="lbl">${esc(s.label)}</span>
-        <input type="range" min="-100" max="100" step="1" data-sl="${s.key}" aria-label="${esc(s.label)}">
-        <span class="val mono" data-slv="${s.key}"></span>
-      </div>
-      <p class="hint slider-hint">−：${esc(s.minus)}　＋：${esc(s.plus)}</p>`).join('');
-  }
-  for (const s of list) {
-    const v = Math.round(SH.getParam(sh, S.tSel, side, s.key) * 100);
-    const el = $(`[data-sl="${s.key}"]`, box);
-    if (document.activeElement !== el) el.value = v;
-    $(`[data-slv="${s.key}"]`, box).textContent = (v > 0 ? '+' : '') + v;
-  }
-}
-
 $('#parts').addEventListener('click', (e) => {
   const b = e.target.closest('[data-id]'); if (!b) return;
   S.sim.sel = +b.dataset.id; S.mode = null; updateSimPanel(); S.dirty = true;
@@ -1110,38 +942,6 @@ $('#btn-copy').addEventListener('click', () => {
   toast(`${partLabel(r.name)}のパーツを追加しました`);
   updateSimPanel(); S.dirty = true;
 });
-
-// ---------------- パネル（形の変更） ----------------
-$('#t-sel').addEventListener('change', (e) => { S.tSel = e.target.value; S.tHandle = null; updateSimPanel(); S.dirty = true; });
-$('#t-mode').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.tMode = v; updateSimPanel(); S.dirty = true; } });
-$('#t-sym').addEventListener('click', () => { S.tSym = !S.tSym; updateSimPanel(); });
-$('#t-side').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.tSide = v; updateSimPanel(); } });
-$('#t-step').addEventListener('click', () => { S.tBig = !S.tBig; updateSimPanel(); });
-/** 形の変更の操作（1回で履歴に積む） */
-function tEdit(f) { const sim = S.sim; sim.begin(); f(sim.shape, sim); sim.touchDeform(); updateSimPanel(); S.dirty = true; }
-$$('[data-push]').forEach((b) => b.addEventListener('click', () => {
-  if (!S.tHandle) { toast('先に取っ手をタップして選んでください'); return; }
-  const [dx, dy] = b.dataset.push.split(',').map(Number), st = ((S.tBig ? 8 : 1.5) * DPR()) / S.view.s;
-  tEdit(() => moveHandle(S.tHandle, [dx * st, dy * st], null));
-}));
-// スライダー：動かし始めに1回だけ履歴に積み、動かしている間は画像の変形だけを描き直す
-let tSliding = false;
-$('#t-sliders').addEventListener('input', (e) => {
-  const key = e.target.dataset?.sl; if (!key) return;
-  const sim = S.sim;
-  if (!tSliding) { sim.begin(); tSliding = true; }
-  SH.setParam(sim.shape, S.tSel, S.tSym ? 'R' : S.tSide, key, +e.target.value / 100, S.tSym);
-  sim.touchDeform(true); updateSimPanel(); S.dirty = true;
-});
-$('#t-sliders').addEventListener('change', () => { tSliding = false; S.sim.settle(); updateSimPanel(); S.dirty = true; });
-$('#t-reset').addEventListener('click', () => tEdit((sh) => { if (S.tMode === 'fit') SH.resetRest(sh, S.tSel); else SH.resetDeform(sh, S.tSel); }));
-for (const id of ['#t-copy', '#t-copy2']) {
-  $(id).addEventListener('click', (e) => {
-    const from = e.currentTarget.dataset.from;
-    tEdit((sh, sim) => SH.copySide(sh, S.tSel, from || null, sim.ax));
-    toast(from ? `${SH.sideLabel(from)}の変形を反対側へコピーしました` : `${SH.groupLabel(SH.groupDef(S.tSel).pair)}へ変形をコピーしました`);
-  });
-}
 
 // ---------------- 修正前の一時表示（押している間だけ） ----------------
 const before = $('#btn-before');

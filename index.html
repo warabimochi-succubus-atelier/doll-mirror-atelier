@@ -47,11 +47,7 @@
       <button class="btn btn-primary btn-s" id="update-now">更新する</button>
     </div>
 
-    <!-- シミュレーションのタブと操作バー -->
-    <div class="tabs" data-show="sim" role="tablist">
-      <button role="tab" data-tab="parts" class="on">パーツ移動</button>
-      <button role="tab" data-tab="shape">形の変更</button>
-    </div>
+    <!-- シミュレーションの操作バー -->
     <div class="simbar" data-show="sim">
       <button class="btn btn-s" id="btn-undo" title="元に戻す" aria-label="元に戻す">↶</button>
       <button class="btn btn-s" id="btn-redo" title="やり直す" aria-label="やり直す">↷</button>
@@ -205,7 +201,7 @@
         </div>
 
         <!-- シミュレーション：パーツ移動 -->
-        <div data-show="sim" data-tabpanel="parts">
+        <div data-show="sim">
           <div class="row">
             <div class="parts grow" id="parts"></div>
             <button class="btn btn-s" id="btn-lasso" aria-pressed="false">＋ 囲んで追加</button>
@@ -247,54 +243,6 @@
             <p class="hint" id="part-note"></p>
           </div>
           <p class="hint">移動は画像上の2D移動です。大きく動かした場合の見え方は目安です。</p>
-        </div>
-
-        <!-- シミュレーション：形の変更 -->
-        <div data-show="sim" data-tabpanel="shape" hidden>
-          <div class="row">
-            <span class="lbl">対象</span>
-            <select class="grow" id="t-sel" aria-label="対象"></select>
-          </div>
-          <div class="row">
-            <span class="lbl">操作</span>
-            <div class="seg" id="t-mode">
-              <button data-v="fit">位置合わせ<small>取っ手を輪郭に合わせる</small></button>
-              <button data-v="deform">変形<small>輪郭を動かす</small></button>
-            </div>
-          </div>
-          <div class="row">
-            <span class="lbl">左右対称</span>
-            <button class="btn btn-ghost btn-s" id="t-sym" aria-pressed="true">ON</button>
-            <span class="hint grow" style="margin:0" id="t-sym-hint"></span>
-          </div>
-          <div class="row" id="t-side-row" hidden>
-            <span class="lbl">変形する側</span>
-            <div class="seg" id="t-side"><button data-v="R">右<small>画面左側</small></button><button data-v="L">左<small>画面右側</small></button></div>
-          </div>
-          <p class="hint" id="t-hint"></p>
-          <div id="t-sliders"></div>
-          <div class="row" style="align-items:flex-start">
-            <div class="pad" aria-label="選んだ取っ手を動かす">
-              <span></span><button data-push="0,-1">↑</button><span></span>
-              <button data-push="-1,0">←</button><button class="c" id="t-step" title="微調整の量を切り替え">小</button><button data-push="1,0">→</button>
-              <span></span><button data-push="0,1">↓</button><span></span>
-            </div>
-            <div class="grow" style="display:grid;gap:6px">
-              <p class="hint" style="margin:0" id="t-handle"></p>
-              <div class="row"><span class="kind cut">削り</span><span class="kind putty">パテ盛り</span><span class="hint" style="margin:0">取っ手の色で目安を表示</span></div>
-            </div>
-          </div>
-          <div class="row wrap" style="margin-top:8px">
-            <button class="btn grow wrap-text" id="t-copy"></button>
-            <button class="btn grow wrap-text" id="t-copy2" hidden></button>
-          </div>
-          <div class="row">
-            <span class="grow"></span>
-            <button class="btn btn-ghost btn-s" id="t-reset"></button>
-          </div>
-          <p class="hint warn" id="t-parts-note" hidden></p>
-          <p class="hint">輪郭の位置・形の当たり確認用です。奥行き（高さ・膨らみ）と陰影の変化は再現しません。</p>
-          <p class="hint">アイを入れたまま変形すると、アイも引き伸ばされます。変形する側のアイを外し、アイとの組み合わせはミラーで確認してください。</p>
         </div>
       </div>
 

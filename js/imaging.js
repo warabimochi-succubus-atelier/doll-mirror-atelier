@@ -148,7 +148,7 @@ export const LIGHT_DIFF = 0.12;
 
 /**
  * 囲んだ範囲から、周囲の肌色との差でメイク成分を取り出す
- * @param src 対象の画像（形の変更を適用した後の画像）
+ * @param src 対象の画像（取り込み画像）
  * @param poly 囲んだ範囲（src の画素）
  * @param feather 境界のぼかし幅（画素）
  * @param strength 抽出の強さ（0〜1）

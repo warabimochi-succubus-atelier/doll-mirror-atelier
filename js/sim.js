@@ -1,13 +1,11 @@
-// シミュレーション（パーツ移動・形の変更）の内容と描画、取り消し（Undo / Redo）
-// 仕様書「シミュレーション画面」「パーツ選択」「パーツ移動シミュレーション」「形の変更」を参照
+// シミュレーション（パーツ移動）の内容と描画、取り消し（Undo / Redo）
+// 仕様書「シミュレーション画面」「パーツ選択」「パーツ移動シミュレーション」を参照
 //
-// 重ね順：取り込み画像 → 形の変更（輪郭の変形）→ 元の位置の処理（薄くする・消す）→ パーツの仮置きレイヤー（乗算）
-// パーツの選択範囲は取り込み画像の座標で持ち、形の変更がある場合は変形を当てた位置で扱う。
+// 重ね順：取り込み画像 → 元の位置の処理（薄くする・消す）→ パーツの仮置きレイヤー（乗算）
+// パーツの選択範囲は取り込み画像の座標で持つ。
 
 import * as G from './geom.js';
 import * as IM from './imaging.js';
-import * as SH from './shape.js';
-import { Warper, Tps, fadeAt } from './warp.js';
 
 const UNDO_MAX = 100;
 
@@ -36,22 +34,15 @@ export class Sim {
     this.cap = cap;
     this.parts = [];
     this.sel = null;          // 編集中のパーツの id
-    this.shape = SH.initShape(cap); // 形の変更（取っ手・スライダーの値）
     this.undoStack = [];
     this.redoStack = [];
     this.ver = 1;             // 内容が変わるたびに増やす（描画のキャッシュの判定に使う）
-    this.deformVer = 1;       // 形の変更が変わるたびに増やす
-    this.partsVer = 1;        // パーツの抽出をやり直した時点の deformVer（ドラッグ中は進めない）
-    this.warper = new Warper();
-    this._ctl = null; this._ctlVer = 0;
-    this._view = null; this._viewVer = 0;
-    this._deformed = null; this._deformedVer = 0;
     this._full = null; this._fullVer = 0;
   }
 
   get ax() { return G.axis(this.cap.w, this.cap.h, this.cap.angle); }
   get refl() { return G.reflectM(this.ax); }
-  get hasContent() { return this.parts.length > 0 || SH.changed(this.shape, this.ax); }
+  get hasContent() { return this.parts.length > 0; }
   part(id) { return this.parts.find((p) => p.id === id) || null; }
   get selPart() { return this.part(this.sel); }
 
@@ -59,15 +50,13 @@ export class Sim {
   snapshot() {
     return {
       parts: this.parts.map((p) => ({ ...p, poly: p.poly.map((q) => q.slice()), t: { ...p.t }, pivot: p.pivot?.slice() || null, copy: p.copy ? structuredClone(p.copy) : null, _ex: undefined, _ox: undefined })),
-      shape: SH.cloneShape(this.shape),
       sel: this.sel,
     };
   }
   restore(s) {
     this.parts = s.parts.map((p) => ({ ...p }));
-    this.shape = SH.cloneShape(s.shape);
     this.sel = this.part(s.sel) ? s.sel : (this.parts[this.parts.length - 1]?.id ?? null);
-    this.touchDeform();
+    this.touch();
   }
   /** 操作の直前に呼ぶ（その時点の状態を取り消しの履歴に積む） */
   begin() {
@@ -81,74 +70,8 @@ export class Sim {
   redo() { if (!this.redoStack.length) return false; this.undoStack.push(this.snapshot()); this.restore(this.redoStack.pop()); return true; }
 
   touch() { this.ver++; }
-  /**
-   * 形の変更が変わったとき。live（ドラッグ・スライダーの操作中）は画像の変形だけを描き直し、
-   * パーツの抽出は指を離したとき（settle）にやり直す（抽出は重いため）
-   */
-  touchDeform(live = false) {
-    this.deformVer++; this.ver++;
-    if (!live) this.settle();
-  }
-  /** パーツの抽出を、今の形の変更に合わせてやり直す */
-  settle() {
-    if (this.partsVer === this.deformVer) return;
-    this.partsVer = this.deformVer;
-    this.parts.forEach((p) => { p._ex = null; p._ox = null; });
-    this.ver++;
-  }
-  /** 中心線の角度を変えたとき（取り込み画像に適用する場合）：中心線を基準にした計算をやり直す */
-  setAngle(deg) { this.cap.angle = deg; this.touchDeform(); }
-
-  // ---------------- 形の変更 ----------------
-  /**
-   * 変形の制御点と TPS（形の変更が変わったときだけ作り直す）。
-   * 制御点の並び（元の位置）が前と同じなら TPS の準備を使い回し、動かした量だけ解き直す
-   */
-  controls() {
-    if (this._ctl && this._ctlVer === this.deformVer) return this._ctl;
-    const c = SH.controls(this.shape, this.ax);
-    if (!c.identity) {
-      const t = this._tps;
-      const same = t && t.P.length === c.P.length && t.P.every((v, i) => v === c.P[i]);
-      try {
-        this._tps = same ? t : new Tps(c.P);
-        c.tps = this._tps.solve(c.Q);
-      } catch { c.identity = true; this._tps = null; } // 制御点が重なって解けない場合は変形しない
-    }
-    this._ctl = c; this._ctlVer = this.deformVer;
-    return c;
-  }
-  /** 点 p の変形による移動量 */
-  disp(p) {
-    const c = this.controls();
-    if (c.identity) return [0, 0];
-    const f = fadeAt(c.box, p[0], p[1]);
-    if (!f) return [0, 0];
-    const d = c.tps.dispInto(p[0], p[1], [0, 0]);
-    return [d[0] * f, d[1] * f];
-  }
-  /** 表示用の変形した画像（WebGL の canvas。取り込み画像の上に重ねて描く。変形がなければ null） */
-  deformedView() {
-    const c = this.controls();
-    if (c.identity) return null;
-    if (this._view && this._viewVer === this.deformVer) return this._view;
-    this._view = this.warper.render(this.cap.canvas, c.tps, c.box); this._viewVer = this.deformVer;
-    return this._view;
-  }
-  /** 形の変更を当てた画像（2D の canvas。パーツの抽出に使う） */
-  deformed() {
-    const view = this.deformedView();
-    if (!view) return this.cap.canvas;
-    if (this._deformed && this._deformedVer === this.deformVer) return this._deformed;
-    if (!this._deformed) this._deformed = IM.canvas(this.cap.w, this.cap.h);
-    const x = this._deformed.getContext('2d', { willReadFrequently: true });
-    x.drawImage(this.cap.canvas, 0, 0); x.drawImage(view, 0, 0);
-    this._deformedVer = this.deformVer;
-    return this._deformed;
-  }
-  /** 形の変更の対象ごとに変形があるもの（ミラーの「基準でない側の修正」・再開時の案内に使う） */
-  changedGroups() { return SH.GROUPS.filter((g) => SH.changed(this.shape, this.ax, g.id)).map((g) => g.id); }
-  changedSides() { return SH.changedSides(this.shape, this.ax); }
+  /** 中心線の角度を変えたとき（取り込み画像に適用する場合）：コピー先の範囲（中心線で反転した位置）を取り出し直す */
+  setAngle(deg) { this.cap.angle = deg; this.parts.forEach((p) => { p._ox = null; }); this.touch(); }
 
   // ---------------- パーツ ----------------
   /** 囲んだ範囲の側：'L'（ドールの左＝画面右側）/ 'R'（ドールの右＝画面左側）/ 'C'（中心線にかかる中央） */
@@ -184,26 +107,19 @@ export class Sim {
     if (this.sel === p.id) this.sel = this.parts[this.parts.length - 1]?.id ?? null;
     this.touch();
   }
-  /** 変形を当てた選択範囲 */
-  warp(poly) { return this.controls().identity ? poly : poly.map((q) => { const d = this.disp(q); return [q[0] + d[0], q[1] + d[1]]; }); }
-
-  /** パーツのレイヤー（コピーしたパーツはコピー元の範囲から取り出す）。形の変更の操作中は、操作前の抽出のまま使う */
+  /** パーツのレイヤー（コピーしたパーツはコピー元の範囲から取り出す） */
   layerOf(p) {
-    const key = `${this.partsVer}`;
-    if (p._ex && p._exKey === key) return p._ex;
+    if (p._ex) return p._ex;
     const srcPoly = p.copy ? p.copy.poly : p.poly;
     const f = p.copy ? p.copy.feather : p.feather, s = p.copy ? p.copy.strength : p.strength;
-    p._ex = IM.extract(this.deformed(), this.warp(srcPoly), f, s);
-    p._exKey = key;
+    p._ex = IM.extract(this.cap.canvas, srcPoly, f, s);
     return p._ex;
   }
   /** 元の位置（コピーしたパーツはコピー先の範囲）の処理に使う画像 */
   originOf(p) {
     if (!p.copy) return this.layerOf(p);
-    const key = `${this.partsVer}`;
-    if (p._ox && p._oxKey === key) return p._ox;
-    p._ox = IM.extract(this.deformed(), this.warp(this.destPoly(p)), p.feather, p.strength);
-    p._oxKey = key;
+    if (p._ox) return p._ox;
+    p._ox = IM.extract(this.cap.canvas, this.destPoly(p), p.feather, p.strength);
     return p._ox;
   }
   /** コピー先の範囲：自動で決めた場合は、コピー元（移動・回転等の後）の範囲を今の中心線で反転した位置 */
@@ -214,7 +130,7 @@ export class Sim {
   /** 支点と主軸（拡大縮小の長さ方向） */
   frame(p) {
     const B = this.baseM(p);
-    const poly = this.warp(p.copy ? p.copy.poly : p.poly);
+    const poly = p.copy ? p.copy.poly : p.poly;
     const bb = G.bbox(poly);
     let a = G.principalAngle(poly);
     const v = G.apv(B, [Math.cos(a), Math.sin(a)]);
@@ -269,12 +185,6 @@ export class Sim {
     const s = G.sideOf(this.ax, c);
     return Math.abs(s) < this.cap.guides.spacing * this.cap.w * 0.3 ? 0 : Math.sign(s);
   }
-  /** 形の変更に合わせて動いたパーツ（選択範囲のどこかが 0.5px 以上動いたもの） */
-  partsInDeform() {
-    if (this.controls().identity) return [];
-    return this.parts.filter((p) => (p.copy ? p.copy.poly : p.poly).some((q) => Math.hypot(...this.disp(q)) >= 0.5));
-  }
-
   // ---------------- 描画 ----------------
   /**
    * @param ctx 描画先、V 画像の座標 → 描画先の座標の行列
@@ -285,9 +195,6 @@ export class Sim {
     ctx.setTransform(...V);
     ctx.drawImage(this.cap.canvas, 0, 0);
     if (!before) {
-      // 変形した画像を重ねる（WebGL で描いた画像をそのまま使い、2D の画像への写しは作らない。ドラッグ中も速く描けるように）
-      const view = this.deformedView();
-      if (view) ctx.drawImage(view, 0, 0);
       const vis = this.parts.filter((p) => p.visible);
       for (const p of vis) {
         if (p.origin === 'keep') continue;
