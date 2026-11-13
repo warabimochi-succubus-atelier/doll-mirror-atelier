@@ -23,7 +23,7 @@ const S = {
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで取り直しを案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
   mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 } },
-  face: { angle0: 0, loupe: true, focus: null },
+  face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 取り込み（待ち時間）中の番号。画面を離れたら取りやめる
   // シミュレーション画面
   tab: 'parts', view: null, before: false, mode: null, big: false, tBig: false,
@@ -163,6 +163,20 @@ async function setZoom(v) {
 }
 $('#zoom').addEventListener('click', (e) => { const b = e.target.closest('[data-z]'); if (b) setZoom(+b.dataset.z); });
 
+/**
+ * 今のズーム倍率での合わせ用ガイドの位置（映像に対する比率）。
+ * ガイドは合わせたときのズーム倍率（guideZoom）と一緒に保持し、ズームを変えたら映像の中央を基準に換算する
+ * （ズームは映像の中央を基準に拡大するため、ヘッドに対するガイドの位置が変わらない）
+ */
+function guideNow() {
+  const k = cam.zoom / (settings.guideZoom || cam.zoom);
+  return { eyeY: 0.5 + (settings.eyeY - 0.5) * k, spacing: settings.spacing * k, frame: settings.frame };
+}
+/** 合わせ用ガイドの位置を、今のズーム倍率での値として保存する */
+function setGuide(eyeY, spacing) {
+  settings.eyeY = eyeY; settings.spacing = spacing; settings.guideZoom = cam.zoom; save();
+}
+
 // ---------------- 取り込み ----------------
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 async function countdown(sec) {
@@ -194,7 +208,7 @@ async function capture() {
     }
     const cap = {
       canvas, w: canvas.width, h: canvas.height, angle: settings.angle, time: new Date(),
-      guides: { eyeY: settings.eyeY, spacing: settings.spacing, frame: settings.frame },
+      guides: guideNow(),
     };
     S.lastCap = cap;
     return cap;
@@ -235,7 +249,8 @@ function drawGuides(M, fw, fh, angle, full = true) {
   const L = Math.max(fw, fh);
   line(P(-L, 0), P(L, 0), 'rgba(143,211,255,.95)', 1.5, [8, 6]);
   if (!full) return;
-  const eye = (settings.eyeY - 0.5) * fh, sp = settings.spacing * fw, tick = fh * 0.022;
+  const g = guideNow();
+  const eye = (g.eyeY - 0.5) * fh, sp = g.spacing * fw, tick = fh * 0.022;
   line(P(eye, -fw * 0.42), P(eye, fw * 0.42), 'rgba(255,211,107,.9)', 1.2, [4, 4]);
   for (const s of [-1, 1]) line(P(eye - tick, s * sp / 2), P(eye + tick, s * sp / 2), '#ffd36b', 3);
   // 鼻先・口の中央が中心線上に来ることを示す目安
@@ -260,8 +275,16 @@ function drawLive() {
   if (!cam.ready) return;
   const v = cam.video, c = cam.crop();
   const d = G.coverRect(c.sw, c.sh, W, H);
-  ctx.drawImage(v, c.sx, c.sy, c.sw, c.sh, d.x, d.y, d.w, d.h);
-  const fw = c.sw, fh = c.sh, V = [d.s, 0, 0, d.s, d.x, d.y];
+  const fw = c.sw, fh = c.sh;
+  let V = [d.s, 0, 0, d.s, d.x, d.y];
+  if (S.screen === 'face') {
+    // 顔位置設定：ピンチで拡大した表示。映像とガイドを同じ変換で描き、ガイドが映像に追従する
+    const fv = clampFaceView();
+    V = G.mul([fv.s, 0, 0, fv.s, fv.x, fv.y], V);
+  }
+  ctx.setTransform(...V);
+  ctx.drawImage(v, c.sx, c.sy, c.sw, c.sh, 0, 0, fw, fh);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   S.live = { V, fw, fh };
   const a = settings.assist;
 
@@ -273,7 +296,6 @@ function drawLive() {
   } else if (S.screen === 'face') {
     drawFrameGuide(V, fw, fh, settings.angle);
     drawGuides(V, fw, fh, settings.angle);
-    if (S.face.loupe) drawLoupe(V, fw, fh, c);
   } else if (S.screen === 'mirror') {
     drawMirror(V, fw, fh);
   }
@@ -286,27 +308,6 @@ function drawCapEdges(cap, V, fw, alpha) {
   ctx.setTransform(...G.mul(V, G.S(k)));
   ctx.drawImage(IM.tintEdges(edgesOf(cap.canvas), settings.lineColor, tintCache), 0, 0, cap.w, cap.h);
   ctx.restore();
-}
-
-/** ルーペ：映像の一部を拡大して、目頭・鼻先と線の重なりを確かめる */
-function drawLoupe(V, fw, fh, c) {
-  const W = cv.width, R = Math.min(W, cv.height) * 0.2;
-  const ax = G.axis(fw, fh, settings.angle);
-  const f = S.face.focus || G.fromAxis(ax, (settings.eyeY - 0.5) * fh, 0);
-  const fs = G.ap(V, f);
-  const center = [fs[0] > W / 2 ? R + 12 * DPR() : W - R - 12 * DPR(), R + 12 * DPR()];
-  const Z = 3;
-  const M = G.mul(G.T(center[0], center[1]), G.S(Z), G.T(-fs[0], -fs[1]), V);
-  ctx.save();
-  ctx.beginPath(); ctx.arc(center[0], center[1], R, 0, Math.PI * 2); ctx.clip();
-  ctx.fillStyle = '#111'; ctx.fillRect(center[0] - R, center[1] - R, 2 * R, 2 * R);
-  ctx.setTransform(...M);
-  ctx.drawImage(cam.video, c.sx, c.sy, c.sw, c.sh, 0, 0, fw, fh);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawGuides(M, fw, fh, settings.angle);
-  ctx.restore();
-  ctx.beginPath(); ctx.arc(center[0], center[1], R, 0, Math.PI * 2);
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * DPR(); ctx.stroke();
 }
 
 /** ミラー：取り込み画像の基準の側を中心線で反転し、反対側の半分にだけ重ねる */
@@ -343,7 +344,7 @@ function runChecks(c) {
   const s = Math.min(1, 400 / Math.max(c.sw, c.sh));
   checkCanvas.width = Math.round(c.sw * s); checkCanvas.height = Math.round(c.sh * s);
   checkCanvas.getContext('2d', { willReadFrequently: true }).drawImage(cam.video, c.sx, c.sy, c.sw, c.sh, 0, 0, checkCanvas.width, checkCanvas.height);
-  S.checks.light = a.light ? IM.lightBalance(checkCanvas, checkCanvas.width, checkCanvas.height, { angle: settings.angle, eyeY: settings.eyeY, frame: settings.frame }) : 0;
+  S.checks.light = a.light ? IM.lightBalance(checkCanvas, checkCanvas.width, checkCanvas.height, { angle: settings.angle, ...guideNow() }) : 0;
   S.checks.sharp = a.sharp ? IM.sharpness(checkCanvas, frameRect(checkCanvas.width, checkCanvas.height)) : null;
   renderChips();
 }
@@ -472,16 +473,33 @@ setInterval(updateLevel, 120);
 // ======================================================================
 function updateFace() {
   $('#angle-v').textContent = fmtAngle(settings.angle);
-  $('#btn-loupe').setAttribute('aria-pressed', String(S.face.loupe));
+  $('#btn-face-fit').hidden = S.face.view.s <= 1.001;
   renderChips();
 }
 $$('[data-angle]').forEach((b) => b.addEventListener('click', () => {
   settings.angle = Math.round(G.clamp(settings.angle + +b.dataset.angle, -10, 10) * 10) / 10; save(); updateFace();
 }));
 $('#btn-angle0').addEventListener('click', () => { settings.angle = 0; save(); updateFace(); });
-$$('[data-eye]').forEach((b) => b.addEventListener('click', () => { settings.eyeY = G.clamp(settings.eyeY + +b.dataset.eye, 0.15, 0.85); save(); }));
-$$('[data-sp]').forEach((b) => b.addEventListener('click', () => { settings.spacing = G.clamp(settings.spacing + +b.dataset.sp, 0.02, 0.45); save(); }));
-$('#btn-loupe').addEventListener('click', () => { S.face.loupe = !S.face.loupe; updateFace(); });
+// 拡大して表示している間は、1回で動く量を表示の倍率に合わせて小さくする（画面上で同じくらい動くように）
+$$('[data-eye]').forEach((b) => b.addEventListener('click', () => { const g = guideNow(); setGuide(G.clamp(g.eyeY + +b.dataset.eye / S.face.view.s, 0.15, 0.85), g.spacing); }));
+$$('[data-sp]').forEach((b) => b.addEventListener('click', () => { const g = guideNow(); setGuide(g.eyeY, G.clamp(g.spacing + +b.dataset.sp / S.face.view.s, 0.02, 0.45)); }));
+
+// ---------------- 顔位置設定の表示（拡大・移動） ----------------
+const FACE_ZOOM_MAX = 8;
+/** 拡大した表示が画面の外にはみ出さないようにする（1倍未満にはしない）。今の表示を返す */
+function clampFaceView() {
+  const v = S.face.view, W = cv.width, H = cv.height;
+  v.s = G.clamp(v.s, 1, FACE_ZOOM_MAX);
+  v.x = G.clamp(v.x, W - W * v.s, 0); v.y = G.clamp(v.y, H - H * v.s, 0);
+  return v;
+}
+/** 表示を at（画面の座標）を中心に f 倍する */
+function zoomFace(f, at) {
+  const v = S.face.view, s = G.clamp(v.s * f, 1, FACE_ZOOM_MAX), k = s / v.s;
+  v.x = at[0] - (at[0] - v.x) * k; v.y = at[1] - (at[1] - v.y) * k; v.s = s;
+  clampFaceView(); updateFace();
+}
+$('#btn-face-fit').addEventListener('click', () => { S.face.view = { s: 1, x: 0, y: 0 }; updateFace(); });
 $('#btn-face-help').addEventListener('click', () => choose({ title: '合わせ方', html: $('#face-help').innerHTML, cancel: '閉じる' }));
 $('#btn-face-done').addEventListener('click', () => back());
 
@@ -696,7 +714,18 @@ const evPos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX 
 stage.addEventListener('pointerdown', (e) => {
   if (e.target.closest('.ov, button')) return;
   const p = evPos(e);
-  if (S.screen === 'face') { if (S.live) S.face.focus = G.ap(G.inv(S.live.V), p); return; }
+  if (S.screen === 'face') {
+    // 顔位置設定：1本指で表示の移動、2本指（ピンチ）で表示の拡大・縮小
+    try { stage.setPointerCapture(e.pointerId); } catch { /* 取り込めなくても操作は続ける */ }
+    pts.set(e.pointerId, p);
+    if (pts.size === 1) { G_.kind = 'facePan'; G_.last = p; }
+    else if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      G_.kind = 'facePinch'; G_.v0 = { ...S.face.view };
+      G_.p0 = { d: Math.hypot(b[0] - a[0], b[1] - a[1]), mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] };
+    }
+    return;
+  }
   if (S.screen !== 'sim' || !S.sim || S.before) return;
   try { stage.setPointerCapture(e.pointerId); } catch { /* 取り込めなくても操作は続ける */ }
   pts.set(e.pointerId, p);
@@ -739,6 +768,23 @@ stage.addEventListener('pointermove', (e) => {
   if (!pts.has(e.pointerId)) return;
   const p = evPos(e);
   pts.set(e.pointerId, p);
+  if (S.screen === 'face') {
+    const v = S.face.view;
+    if (pts.size === 1 && G_.kind === 'facePan') {
+      v.x += p[0] - G_.last[0]; v.y += p[1] - G_.last[1]; clampFaceView();
+      G_.last = p;
+    } else if (pts.size === 2 && G_.kind === 'facePinch') {
+      const [a, b] = [...pts.values()];
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], v0 = G_.v0;
+      const s = G.clamp(v0.s * Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1, G_.p0.d), 1, FACE_ZOOM_MAX);
+      // ピンチの中心を基準に拡大し、指の移動に合わせて動かす
+      v.s = s;
+      v.x = mid[0] - (G_.p0.mid[0] - v0.x) * (s / v0.s);
+      v.y = mid[1] - (G_.p0.mid[1] - v0.y) * (s / v0.s);
+      clampFaceView(); updateFace();
+    }
+    return;
+  }
   const sim = S.sim;
   if (!sim) return;
   if (pts.size === 1) {
@@ -788,6 +834,12 @@ stage.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   if (!pts.has(e.pointerId)) return;
   pts.delete(e.pointerId);
+  if (S.screen === 'face') {
+    // 2本指のうち1本を離した：残りの指で表示の移動を続ける
+    if (pts.size === 1) { G_.kind = 'facePan'; G_.last = [...pts.values()][0]; } else if (!pts.size) G_.kind = null;
+    G_.p0 = null;
+    return;
+  }
   const sim = S.sim;
   if (!sim) return;
   if (pts.size === 1 && (G_.kind === 'pinch' || G_.kind === 'partPinch')) {
@@ -807,6 +859,7 @@ function endPointer(e) {
 stage.addEventListener('pointerup', endPointer);
 stage.addEventListener('pointercancel', endPointer);
 stage.addEventListener('wheel', (e) => {
+  if (S.screen === 'face') { e.preventDefault(); zoomFace(Math.exp(-e.deltaY * 0.0015), evPos(e)); return; }
   if (S.screen !== 'sim' || !S.view) return;
   e.preventDefault();
   zoomView(Math.exp(-e.deltaY * 0.0015), evPos(e));

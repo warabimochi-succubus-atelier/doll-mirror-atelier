@@ -72,7 +72,8 @@
         </div>
         <button class="ov pill level-ask" id="level-ask" hidden>水準器を使う</button>
         <div class="ov chips-top" id="chips"></div>
-        <div class="ov zoom" id="zoom" data-show="home face" role="group" aria-label="ズーム"></div>
+        <div class="ov zoom" id="zoom" data-show="home" role="group" aria-label="ズーム"></div>
+        <button class="ov pill face-fit" id="btn-face-fit" data-show="face" hidden>全体を表示</button>
         <div class="ov banner" id="banner" hidden>
           <span class="grow" id="banner-text"></span>
           <span id="banner-act"></span>
@@ -139,10 +140,8 @@
           <div class="row">
             <span class="lbl">目頭の間隔</span>
             <div class="fine"><button class="btn" data-sp="-0.004">狭く</button><button class="btn" data-sp="0.004">広く</button></div>
-            <span class="grow"></span>
-            <button class="btn btn-ghost btn-s" id="btn-loupe" aria-pressed="true">ルーペ</button>
           </div>
-          <p class="hint">ルーペは画面をタップした位置を拡大します。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
+          <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、取り込む範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
           <!-- 合わせ方（ヘッダーの「合わせ方」でダイアログに表示する） -->
           <template id="face-help">
             <p>中心線は映像の中央に固定されています。ヘッド（またはスタンド）を動かして、ガイドに合わせます。</p>

@@ -8,6 +8,7 @@ export const DEFAULTS = {
   angle: 0,        // 中心線の角度（度。時計回りが正）
   eyeY: 0.47,      // 目の高さの線の位置（映像の高さに対する比率。中心線に沿って測る）
   spacing: 0.13,   // 目頭マークの間隔（映像の幅に対する比率）
+  guideZoom: 2,    // eyeY・spacing を合わせたときのズーム倍率（ズームを変えても、ガイドがヘッドに追従するように換算する）
   zoom: 2,         // ズーム倍率
   // カメラ画面の補助の ON / OFF
   assist: { level: true, frame: true, light: true, sharp: true, center: true, edge: false },
@@ -29,6 +30,8 @@ export const LINE_COLORS = [
 function load() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || '{}');
+    // guideZoom が無い（古い版の）設定は、保存されていたズーム倍率で合わせたものとみなす
+    if (v.guideZoom == null && v.zoom != null) v.guideZoom = v.zoom;
     return { ...structuredClone(DEFAULTS), ...v, assist: { ...DEFAULTS.assist, ...(v.assist || {}) } };
   } catch {
     return structuredClone(DEFAULTS);
