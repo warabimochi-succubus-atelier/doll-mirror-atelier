@@ -502,7 +502,7 @@ function renderChips() {
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
     const which = mirrorWhich();
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
-    chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') :'仮置きの結果'}</span>`);
+    chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') : `仮置きの結果（${hhmm(S.sim.cap.time)}）`}</span>`);
     const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
       chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
@@ -702,9 +702,9 @@ function updateMirror() {
     const hidden = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target);
     const [tw, sw] = target < 0 ? ['左', '右'] : ['右', '左'];
     if (hidden) msgs.push(`${tw}側の修正は表示されません（${sw}側を反転して重ねているため）。両側の修正をあわせて見るには、仮置き画面を使ってください。`);
-    msgs.push(`仮置きの結果は、仮置き開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
+    // いつ撮影した画像がもとかは、撮影画像と同じく映像の上の表示に時刻で出す（パネルに長い注意は出さない）
     note.innerHTML = msgs.map(esc).join('<br>');
-    note.hidden = false;
+    note.hidden = !msgs.length;
   } else note.hidden = true;
   renderChips();
   updateBanner();
