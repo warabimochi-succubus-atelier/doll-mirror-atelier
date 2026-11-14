@@ -173,12 +173,14 @@
           </div>
           <div class="row">
             <span class="lbl">表示する画像</span>
-            <div class="seg" id="m-which"><button data-v="before">修正前</button><button data-v="after">修正後</button></div>
+            <!-- ライブ：今の映像の片側をそのまま反転（撮影しない）。修正前・修正後：撮影画像 -->
+            <div class="seg" id="m-which"><button data-v="live">ライブ</button><button data-v="before">修正前</button><button data-v="after">修正後</button></div>
           </div>
           <div class="row">
             <span class="lbl">表示方法</span>
             <div class="seg" id="m-mode"><button data-v="img">画像</button><button data-v="edge">輪郭のみ</button></div>
           </div>
+          <p class="hint" id="m-live-note" hidden style="margin-top:0">ライブ：今の映像の片側をそのまま反転して重ねます。撮り直しは要りません。反転する側に手や筆が入ると、それも反転して映ります。表示方法は「画像」だけです（輪郭をコマごとに取り出すと端末が熱くなるため）。</p>
           <div class="row">
             <span class="lbl">透明度</span>
             <input type="range" min="0" max="100" id="m-alpha" aria-label="透明度">

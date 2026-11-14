@@ -433,27 +433,42 @@ function drawCapEdges(cap, V, fw, alpha) {
   ctx.restore();
 }
 
-/** ミラー：撮影画像の片側を中心線で反転し、反対側（重ねる側）の半分にだけ重ねる */
+/** ミラーに表示する画像の種類：'live'（今の映像）/ 'before'（撮影画像）/ 'after'（シミュレーションの結果） */
+const mirrorWhich = () => (S.mirror.which === 'after' && S.sim ? 'after' : S.mirror.which === 'live' ? 'live' : 'before');
+/**
+ * ミラー：片側を中心線で反転し、反対側（重ねる側）の半分にだけ重ねる。
+ * ライブは今の映像（撮影しない）、修正前・修正後は撮影画像を反転する
+ */
 function drawMirror(V, fw, fh) {
-  const which = S.mirror.which === 'after' && S.sim ? 'after' : 'before';
-  const cap = which === 'after' ? S.sim.cap : S.mirrorCap;
-  if (!cap) return;
-  const img = which === 'after' ? S.sim.full() : cap.canvas;
-  const Vc = G.mul(V, capToFrame(cap, fw, fh));
-  const ax = G.axis(cap.w, cap.h, cap.angle);
+  const which = mirrorWhich();
+  let Vc, w, h, angle, paint;
+  if (which === 'live') {
+    // 今の映像を、映像の座標のまま反転する（中心線は今の角度）。輪郭は使わない（コマごとに取り出すと重いため）
+    const v = cam.video, c = cam.crop();
+    Vc = V; w = fw; h = fh; angle = settings.angle;
+    paint = () => ctx.drawImage(v, c.sx, c.sy, c.sw, c.sh, 0, 0, fw, fh);
+  } else {
+    const cap = which === 'after' ? S.sim.cap : S.mirrorCap;
+    if (!cap) return;
+    const img = which === 'after' ? S.sim.full() : cap.canvas;
+    Vc = G.mul(V, capToFrame(cap, fw, fh)); w = cap.w; h = cap.h; angle = cap.angle;
+    paint = settings.mirrorMode === 'edge'
+      ? () => ctx.drawImage(IM.tintEdges(edgesOf(img), lineColorOf(cap.canvas), tintCache), 0, 0, cap.w, cap.h)
+      : () => ctx.drawImage(img, 0, 0);
+  }
+  const ax = G.axis(w, h, angle);
   const a = S.mirror.adj;
-  const adj = G.mul(G.T(ax.c[0] + a.x * cap.w, ax.c[1] + a.y * cap.w), G.R(a.r * G.DEG), G.S(a.s), G.T(-ax.c[0], -ax.c[1]));
+  const adj = G.mul(G.T(ax.c[0] + a.x * w, ax.c[1] + a.y * w), G.R(a.r * G.DEG), G.S(a.s), G.T(-ax.c[0], -ax.c[1]));
   // basis は重ねる側：'left' は画面右側を反転して画面左側へ、'right' はその逆
   const side = S.mirror.basis === 'left' ? -1 : 1;
-  const poly = G.halfPlane(ax, side, Math.max(cap.w, cap.h) * 2).map((p) => G.ap(Vc, p));
+  const poly = G.halfPlane(ax, side, Math.max(w, h) * 2).map((p) => G.ap(Vc, p));
   ctx.save();
   ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.closePath(); ctx.clip();
   ctx.globalAlpha = 1 - settings.mirrorAlpha / 100;
   ctx.setTransform(...G.mul(Vc, adj, G.reflectM(ax)));
-  if (settings.mirrorMode === 'edge') ctx.drawImage(IM.tintEdges(edgesOf(img), lineColorOf(cap.canvas), tintCache), 0, 0, cap.w, cap.h);
-  else ctx.drawImage(img, 0, 0);
+  paint();
   ctx.restore();
-  if (settings.assist.center) drawGuides(Vc, cap.w, cap.h, cap.angle, false);
+  if (settings.assist.center) drawGuides(Vc, w, h, angle, false);
 }
 
 // ---------------- 照明の左右差・ピンぼけのチェック（一定間隔で行う） ----------------
@@ -484,10 +499,11 @@ function renderChips() {
     if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
   if (S.screen === 'face') chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
-  if (S.screen === 'mirror' && (S.mirrorCap || S.sim)) {
+  if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
+    const which = mirrorWhich();
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
-    chips.push(`<span class="pill">${S.mirror.which === 'after' && S.sim ? '修正後' : '修正前'}</span>`);
-    const mc = S.mirror.which === 'after' && S.sim ? S.sim.cap : S.mirrorCap;
+    chips.push(`<span class="pill">${{ live: 'ライブ', before: '修正前', after: '修正後' }[which]}</span>`);
+    const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
       chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
     }
@@ -518,7 +534,7 @@ function updateBanner() {
     t.textContent = 'ヘッドが中心線に合っているか確認してください';
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
-  } else if (S.screen === 'mirror' && S.headMoved && (S.mirrorCap || S.sim)) {
+  } else if (S.screen === 'mirror' && S.headMoved && mirrorWhich() !== 'live' && (S.mirrorCap || S.sim)) {
     t.textContent = 'ヘッドの位置が変わっている場合は撮り直してください（表示方法「輪郭のみ」で重なりを確かめられます）';
     // ヘッドが中心線からずれている場合に、すぐ合わせ直せるようにする
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
@@ -654,7 +670,9 @@ async function leaveFace() {
 async function openMirror(which) {
   if (which) S.mirror.which = which;
   go('mirror');
-  if (!S.mirrorCap) {
+  // ライブは撮影しない。修正前を表示するときだけ、撮影画像が無ければ撮影する
+  if (mirrorWhich() === 'before' && !S.mirrorCap) {
+    updateMirror();
     const cap = await capture();
     if (!cap) { if (S.screen === 'mirror' && !S.mirrorCap) back(); return; }
     S.mirrorCap = cap; S.headMoved = false;
@@ -667,7 +685,13 @@ function updateMirror() {
   setSeg('#m-basis', S.mirror.basis);
   setSeg('#m-which', S.mirror.which);
   $('#m-which [data-v=after]').disabled = !S.sim;
-  setSeg('#m-mode', settings.mirrorMode);
+  const live = mirrorWhich() === 'live';
+  // ライブは「画像」だけ（輪郭をコマごとに取り出すと端末が熱くなるため）
+  setSeg('#m-mode', live ? 'img' : settings.mirrorMode);
+  $('#m-mode [data-v=edge]').disabled = live;
+  $('#m-live-note').hidden = !live;
+  // ライブは撮影しないため、撮り直しは要らない
+  $('#btn-retake').hidden = live;
   $('#m-alpha').value = settings.mirrorAlpha;
   $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`;
   const note = $('#m-after-note');
@@ -686,8 +710,18 @@ function updateMirror() {
   updateBanner();
 }
 $('#m-basis').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.mirror.basis = v; updateMirror(); } });
-$('#m-which').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v && !e.target.closest('button').disabled) { S.mirror.which = v; updateMirror(); } });
-$('#m-mode').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { settings.mirrorMode = v; save(); updateMirror(); } });
+$('#m-which').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'), v = b?.dataset.v;
+  if (!v || b.disabled) return;
+  if (v === 'before' && !S.mirrorCap) {
+    // ライブから修正前に切り替えたときは、まだ撮影画像が無ければ撮影する
+    const cap = await capture();
+    if (!cap) return;
+    S.mirrorCap = cap; S.headMoved = false;
+  }
+  S.mirror.which = v; updateMirror();
+});
+$('#m-mode').addEventListener('click', (e) => { const b = e.target.closest('button'), v = b?.dataset.v; if (v && !b.disabled) { settings.mirrorMode = v; save(); updateMirror(); } });
 $('#m-alpha').addEventListener('input', (e) => { settings.mirrorAlpha = +e.target.value; save(); $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`; });
 $('#m-adj').addEventListener('click', (e) => {
   const k = e.target.closest('[data-adj]')?.dataset.adj; if (!k) return;
