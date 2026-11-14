@@ -437,7 +437,7 @@ function drawCapEdges(cap, V, fw, alpha) {
 const mirrorWhich = () => (S.mirror.which === 'after' && S.sim ? 'after' : S.mirror.which === 'live' ? 'live' : 'before');
 /**
  * ミラー：片側を中心線で反転し、反対側（重ねる側）の半分にだけ重ねる。
- * ライブは今の映像（撮影しない）、修正前・修正後は撮影画像を反転する
+ * ライブは今の映像（撮影しない）、撮影画像はミラーで撮影した画像、シミュレーションはパーツ移動の結果を反転する
  */
 function drawMirror(V, fw, fh) {
   const which = mirrorWhich();
@@ -502,7 +502,7 @@ function renderChips() {
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
     const which = mirrorWhich();
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
-    chips.push(`<span class="pill">${{ live: 'ライブ', before: '修正前', after: '修正後' }[which]}</span>`);
+    chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') :'シミュレーションの結果'}</span>`);
     const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
       chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
@@ -670,7 +670,7 @@ async function leaveFace() {
 async function openMirror(which) {
   if (which) S.mirror.which = which;
   go('mirror');
-  // ライブは撮影しない。修正前を表示するときだけ、撮影画像が無ければ撮影する
+  // ライブは撮影しない。撮影画像を表示するときだけ、まだ無ければ撮影する
   if (mirrorWhich() === 'before' && !S.mirrorCap) {
     updateMirror();
     const cap = await capture();
@@ -702,7 +702,7 @@ function updateMirror() {
     const hidden = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target);
     const [tw, sw] = target < 0 ? ['左', '右'] : ['右', '左'];
     if (hidden) msgs.push(`${tw}側の修正は表示されません（${sw}側を反転して重ねているため）。両側の修正をあわせて見るには、シミュレーション画面を使ってください。`);
-    msgs.push(`修正後の画像は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
+    msgs.push(`シミュレーションの結果は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
     note.innerHTML = msgs.map(esc).join('<br>');
     note.hidden = false;
   } else note.hidden = true;
@@ -714,7 +714,7 @@ $('#m-which').addEventListener('click', async (e) => {
   const b = e.target.closest('button'), v = b?.dataset.v;
   if (!v || b.disabled) return;
   if (v === 'before' && !S.mirrorCap) {
-    // ライブから修正前に切り替えたときは、まだ撮影画像が無ければ撮影する
+    // ライブから撮影画像に切り替えたときは、まだ撮影画像が無ければ撮影する
     const cap = await capture();
     if (!cap) return;
     S.mirrorCap = cap; S.headMoved = false;
@@ -1070,7 +1070,7 @@ function updateSimPanel() {
     const notes = [];
     if (p.copy && p.origin === 'keep') notes.push('「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
     else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
-    if (!p.visible) notes.push('非表示のパーツは、ミラーの修正後の画像にも含めません。');
+    if (!p.visible) notes.push('非表示のパーツは、ミラーの「シミュレーション」の画像にも含めません。');
     $('#part-note').textContent = notes.join(' ');
   }
   renderChips();

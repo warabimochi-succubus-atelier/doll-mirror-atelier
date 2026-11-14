@@ -173,8 +173,9 @@
           </div>
           <div class="row">
             <span class="lbl">表示する画像</span>
-            <!-- ライブ：今の映像の片側をそのまま反転（撮影しない）。修正前・修正後：撮影画像 -->
-            <div class="seg" id="m-which"><button data-v="live">ライブ</button><button data-v="before">修正前</button><button data-v="after">修正後</button></div>
+            <!-- 何を映すかで呼ぶ。ライブ：今の映像（撮影しない）、撮影画像：ミラーで撮影した画像、シミュレーション：パーツ移動の結果
+                 （「撮影」だけだと撮影する操作のボタンに見えるため「撮影画像」とする） -->
+            <div class="seg" id="m-which"><button data-v="live">ライブ</button><button data-v="before">撮影画像</button><button data-v="after">シミュレーション</button></div>
           </div>
           <div class="row">
             <span class="lbl">表示方法</span>

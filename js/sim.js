@@ -206,7 +206,7 @@ export class Sim {
     }
     ctx.restore();
   }
-  /** 修正後の画像（ミラーの「修正後」用。撮影画像と同じ大きさ） */
+  /** パーツ移動の結果の画像（ミラーの「シミュレーション」用。撮影画像と同じ大きさ） */
   full() {
     if (this._full && this._fullVer === this.ver) return this._full;
     const c = IM.canvas(this.cap.w, this.cap.h);
