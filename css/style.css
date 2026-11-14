@@ -49,7 +49,10 @@ button, select, input[type="range"], label { touch-action: manipulation; }
 #app { height: 100dvh; display: flex; flex-direction: column; }
 
 /* ---- header（参考 PWA の topbar / brand を踏襲） ---- */
+/* position: sticky：iOS（Safari 26 以降）のホーム画面のアプリは、画面の上端に固定・sticky の要素が無いと、
+   ステータスバーの下にぼかしを重ね、ヘッダーの上半分がぼやけて見える。sticky にしてヘッダーの背景をステータスバーまで伸ばさせる */
 .topbar {
+  position: sticky; top: 0; z-index: 10;
   flex: none; display: flex; align-items: center; gap: 10px; min-height: 52px;
   padding: 8px 16px; padding-top: max(8px, env(safe-area-inset-top));
   padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));
