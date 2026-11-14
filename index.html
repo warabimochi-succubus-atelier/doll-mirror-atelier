@@ -81,19 +81,22 @@
       <div class="panel" data-show="home face mirror sim">
         <!-- カメラ（ホーム） -->
         <div data-show="home">
-          <div class="nav3">
-            <button class="btn" data-go="face">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><ellipse cx="12" cy="12" rx="7" ry="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5h2M14 10.5h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              顔位置設定
-            </button>
-            <button class="btn btn-primary" id="btn-mirror">
+          <!-- 各画面への入口（タブではない）。主な操作のミラーを大きく1段目に置き、残りを2段目に並べる -->
+          <div class="home-nav">
+            <button class="btn nav-main" id="btn-mirror">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M10 6H5v12h5M14 6h5v12h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-              ミラー
+              <span class="nav-text"><b>ミラー</b><small>映像を取り込み、左右を反転して重ねて比べる</small></span>
             </button>
-            <button class="btn" id="btn-sim">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M11 15q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M14 10l2 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              シミュレーション
-            </button>
+            <div class="nav-sub">
+              <button class="btn" data-go="face">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><ellipse cx="12" cy="12" rx="7" ry="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5h2M14 10.5h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <span class="nav-text"><b>顔位置設定</b><small>ヘッドを中心線に合わせる</small></span>
+              </button>
+              <button class="btn" id="btn-sim">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M11 15q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M14 10l2 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <span class="nav-text"><b>シミュレーション</b><small>取り込んでメイクの移動を試す</small></span>
+              </button>
+            </div>
           </div>
           <div class="row" style="margin-top:10px">
             <span class="lbl">輪郭表示</span>
