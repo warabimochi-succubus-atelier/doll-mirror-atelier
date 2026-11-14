@@ -39,7 +39,7 @@ export function reflectM(ax) {
   const [cx, cy] = ax.c;
   return [a, b, b, d, cx - (a * cx + b * cy), cy - (b * cx + d * cy)];
 }
-/** 中心線から見た側：正 = 画面右側（ドールの左）、負 = 画面左側（ドールの右） */
+/** 中心線から見た側：正 = 画面右側、負 = 画面左側 */
 export const sideOf = (ax, p) => (p[0] - ax.c[0]) * ax.n[0] + (p[1] - ax.c[1]) * ax.n[1];
 /** 中心線に沿った位置（中央から下向きの距離） */
 export const alongOf = (ax, p) => (p[0] - ax.c[0]) * ax.u[0] + (p[1] - ax.c[1]) * ax.u[1];

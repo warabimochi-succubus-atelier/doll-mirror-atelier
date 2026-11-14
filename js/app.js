@@ -6,7 +6,7 @@ import * as G from './geom.js';
 import * as IM from './imaging.js';
 import { cam } from './camera.js';
 import { settings, save, LINE_COLORS } from './settings.js';
-import { Sim, partLabel, copySide } from './sim.js';
+import { Sim, copySide } from './sim.js';
 import { $, $$, esc, toast, choose } from './ui.js';
 /* global APP_VERSION */
 
@@ -426,7 +426,7 @@ function drawCapEdges(cap, V, fw, alpha) {
   ctx.restore();
 }
 
-/** ミラー：撮影画像の基準の側を中心線で反転し、反対側の半分にだけ重ねる */
+/** ミラー：撮影画像の片側を中心線で反転し、反対側（重ねる側）の半分にだけ重ねる */
 function drawMirror(V, fw, fh) {
   const which = S.mirror.which === 'after' && S.sim ? 'after' : 'before';
   const cap = which === 'after' ? S.sim.cap : S.mirrorCap;
@@ -436,7 +436,7 @@ function drawMirror(V, fw, fh) {
   const ax = G.axis(cap.w, cap.h, cap.angle);
   const a = S.mirror.adj;
   const adj = G.mul(G.T(ax.c[0] + a.x * cap.w, ax.c[1] + a.y * cap.w), G.R(a.r * G.DEG), G.S(a.s), G.T(-ax.c[0], -ax.c[1]));
-  // 左基準：ドールの左顔（画面右側）を反転して画面左側へ。右基準はその逆
+  // basis は重ねる側：'left' は画面右側を反転して画面左側へ、'right' はその逆
   const side = S.mirror.basis === 'left' ? -1 : 1;
   const poly = G.halfPlane(ax, side, Math.max(cap.w, cap.h) * 2).map((p) => G.ap(Vc, p));
   ctx.save();
@@ -469,14 +469,14 @@ function renderChips() {
   if (S.screen === 'home') {
     const a = settings.assist, l = S.checks.light;
     if (S.flip) chips.push('<span class="pill bad">左右反転中（画面の左右がふだんと逆です）</span>');
-    // 左右反転中は、ドールの右側が画面の右側に写る
-    const scr = (s) => `画面${(s === 'R') !== S.flip ? '左' : '右'}側`;
-    if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${l > 0 ? `ドールの右側（${scr('R')}）` : `ドールの左側（${scr('L')}）`}が暗めです</span>`);
+    // 左右反転中は、表示の左右が入れ替わるため、暗い側も表示の上の位置で示す
+    // l > 0：画面右側が明るい（画面左側が暗い）
+    if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${(l > 0) !== S.flip ? '左' : '右'}側が暗めです</span>`);
     if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
   if (S.screen === 'face') chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
   if (S.screen === 'mirror' && (S.mirrorCap || S.sim)) {
-    chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '左基準：ドールの左顔（画面右側）を反転' : '右基準：ドールの右顔（画面左側）を反転'}</span>`);
+    chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
     chips.push(`<span class="pill">${S.mirror.which === 'after' && S.sim ? '修正後' : '修正前'}</span>`);
     const mc = S.mirror.which === 'after' && S.sim ? S.sim.cap : S.mirrorCap;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
@@ -490,7 +490,7 @@ function renderChips() {
     else if (S.mode === 'relasso') chips.push('<span class="pill">選択範囲を囲み直してください</span>');
     else if (S.mode === 'redest') chips.push('<span class="pill">もとからあるメイクを薄くする・消す範囲を囲んでください</span>');
     else if (S.mode === 'pivot') chips.push('<span class="pill">回転の支点にする位置をタップしてください</span>');
-    else if (p) chips.push(`<span class="pill">${esc(partLabel(p.name))}を編集中</span>`);
+    else if (p) chips.push(`<span class="pill">${esc(p.name)}を編集中</span>`);
   }
   const html = chips.join('');
   const el = $('#chips');
@@ -667,9 +667,11 @@ function updateMirror() {
   const note = $('#m-after-note');
   if (S.mirror.which === 'after' && S.sim) {
     const msgs = [];
-    const basisSide = S.mirror.basis === 'left' ? 1 : -1;
-    const other = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === -basisSide);
-    if (other) msgs.push('基準でない側の修正は表示されません。両側の修正をあわせて見るには、シミュレーション画面を使ってください。');
+    // 反転するのは重ねる側の反対側。重ねる側（覆われる側）にある修正は表示されない
+    const target = S.mirror.basis === 'left' ? -1 : 1;
+    const hidden = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target);
+    const [tw, sw] = target < 0 ? ['左', '右'] : ['右', '左'];
+    if (hidden) msgs.push(`${tw}側の修正は表示されません（${sw}側を反転して重ねているため）。両側の修正をあわせて見るには、シミュレーション画面を使ってください。`);
     msgs.push(`修正後の画像は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
     note.innerHTML = msgs.map(esc).join('<br>');
     note.hidden = false;
@@ -1002,7 +1004,7 @@ async function finishLasso() {
   // 名前は囲んだ位置（中心線のどちら側か）から自動で付ける（例：右1）
   sim.begin();
   const p = sim.addPart(poly);
-  toast(`${partLabel(p.name)}を追加しました`);
+  toast(`${p.name}を追加しました`);
   updateSimPanel(); S.dirty = true;
 }
 
@@ -1012,13 +1014,13 @@ function updateSimPanel() {
   if (!sim) return;
   $('#btn-undo').disabled = !sim.undoStack.length;
   $('#btn-redo').disabled = !sim.redoStack.length;
-  $('#parts').innerHTML = sim.parts.map((p) => `<button class="part ${p.id === sim.sel ? 'on' : ''} ${p.visible ? '' : 'off'}" data-id="${p.id}">${esc(partLabel(p.name))}</button>`).join('');
+  $('#parts').innerHTML = sim.parts.map((p) => `<button class="part ${p.id === sim.sel ? 'on' : ''} ${p.visible ? '' : 'off'}" data-id="${p.id}">${esc(p.name)}</button>`).join('');
   $('#parts-empty').hidden = sim.parts.length > 0;
   $('#btn-lasso').setAttribute('aria-pressed', String(S.mode === 'lasso'));
   const p = sim.selPart;
   $('#part-ctl').hidden = !p;
   if (p) {
-    $('#part-name').textContent = partLabel(p.name);
+    $('#part-name').textContent = p.name;
     $('#part-vis').textContent = p.visible ? '非表示' : '表示';
     const i = sim.parts.indexOf(p);
     $('#part-up').disabled = i === sim.parts.length - 1;
@@ -1028,7 +1030,7 @@ function updateSimPanel() {
     $('#feather').value = p.feather;
     $('#strength').value = Math.round(p.strength * 100);
     const cs = copySide(p);
-    $('#btn-copy').textContent = cs ? `${cs === 'L' ? '左（画面右側）' : '右（画面左側）'}へコピー` : '左右コピーの対象外（中央のパーツ）';
+    $('#btn-copy').textContent = cs ? `${cs === 'L' ? '左' : '右'}へコピー` : '左右コピーの対象外（中央のパーツ）';
     $('#btn-copy').disabled = !cs;
     $('#btn-pivot').setAttribute('aria-pressed', String(S.mode === 'pivot'));
     // コピーしたパーツ：もとからあるメイクを薄くする・消す範囲を囲み直す（「残す」では範囲を使わないため出さない）
@@ -1095,7 +1097,7 @@ $('#btn-copy').addEventListener('click', () => {
   // 反対側に新しいパーツとして追加する（既にある反対側のパーツは置き換えない）
   const r = sim.copyPart(p);
   if (!r) { sim.cancel(); return; }
-  toast(`${partLabel(r.name)}のパーツを追加しました`);
+  toast(`${r.name}のパーツを追加しました`);
   updateSimPanel(); S.dirty = true;
 });
 

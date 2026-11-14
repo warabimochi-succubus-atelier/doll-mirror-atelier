@@ -11,16 +11,10 @@ const UNDO_MAX = 100;
 
 // ---------------- パーツの名前 ----------------
 // 名前は「側」と「番号」だけ（例：右1、左2、中央1）。側は囲んだ範囲の位置（中心線のどちら側か）から決める。
-// 左右は「ドール本人から見た左右」：中心線より画面右側が左、画面左側が右
+// 左右は「画面で見た左右」（正面から見た左右）：中心線より画面左側が左、画面右側が右
 const SIDE_WORD = { L: '左', R: '右', C: '中央' };
 const OPPOSITE = { L: 'R', R: 'L' };
 const partNameOf = (side, no) => `${SIDE_WORD[side]}${no}`;
-/** 画面上の位置を添えた名前（例：左1（画面右側）） */
-export function partLabel(n) {
-  if (n.startsWith('左')) return `${n}（画面右側）`;
-  if (n.startsWith('右')) return `${n}（画面左側）`;
-  return n;
-}
 /** 左右コピーのコピー先の側（中央のパーツはコピーできないため null） */
 export const copySide = (p) => OPPOSITE[p.side] || null;
 
@@ -76,10 +70,10 @@ export class Sim {
   setAngle(deg) { this.cap.angle = deg; this.parts.forEach((p) => { p._ox = null; }); this.touch(); }
 
   // ---------------- パーツ ----------------
-  /** 囲んだ範囲の側：'L'（ドールの左＝画面右側）/ 'R'（ドールの右＝画面左側）/ 'C'（中心線にかかる中央） */
+  /** 囲んだ範囲の側：'L'（画面左側）/ 'R'（画面右側）/ 'C'（中心線にかかる中央） */
   sideOfPoly(poly) {
     const s = G.sideOf(this.ax, G.centroid(poly));
-    return Math.abs(s) < this.centerHalf * 1.15 ? 'C' : s > 0 ? 'L' : 'R';
+    return Math.abs(s) < this.centerHalf * 1.15 ? 'C' : s > 0 ? 'R' : 'L';
   }
   /** その側で使われていない最も小さい番号 */
   freeNo(side, exceptId) {

@@ -167,10 +167,11 @@
         <!-- ミラー -->
         <div data-show="mirror">
           <div class="row">
-            <span class="lbl">基準の側</span>
+            <span class="lbl">重ねる側</span>
             <div class="seg" id="m-basis">
-              <button data-v="right">右基準<small>ドールの右（画面左）</small></button>
-              <button data-v="left">左基準<small>ドールの左（画面右）</small></button>
+              <!-- 重ねる側（効果が出る側）と同じ並びにする：左のボタンで左側、右のボタンで右側に重なる -->
+              <button data-v="left">左に右を重ねる</button>
+              <button data-v="right">右に左を重ねる</button>
             </div>
           </div>
           <div class="row">
