@@ -414,12 +414,13 @@ function drawLive() {
   if (S.screen === 'home') {
     if (a.frame) drawFrameGuide(V, fw, fh, settings.angle);
     if (a.center) drawGuides(V, fw, fh, settings.angle);
-    runChecks(c);
   } else if (S.screen === 'face') {
     // 元の位置：前回の撮影画像の輪郭（ガイドの下に描く）
     if (a.edge && S.lastCap) drawCapEdges(S.lastCap, V, fw, settings.edgeAlpha);
     drawFrameGuide(V, fw, fh, settings.angle);
     drawGuides(V, fw, fh, settings.angle);
+    // 照明の左右差・ピンぼけの判定は、設置して撮影する顔位置設定でだけ行う（ホームでは行わず、端末の発熱を抑える）
+    runChecks(c);
   } else if (S.screen === 'mirror') {
     drawMirror(V, fw, fh);
   }
@@ -500,17 +501,16 @@ function runChecks(c) {
 function renderChips() {
   const chips = [];
   if (S.screen === 'home') {
-    const a = settings.assist, l = S.checks.light;
     if (S.flip) chips.push('<span class="pill bad">左右反転中（画面の左右がふだんと逆です）</span>');
-    // 左右反転中は、表示の左右が入れ替わるため、暗い側も表示の上の位置で示す
-    // l > 0：画面右側が明るい（画面左側が暗い）
-    if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${(l > 0) !== S.flip ? '左' : '右'}側が暗めです</span>`);
-    if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
   if (S.screen === 'face') {
+    const a = settings.assist, l = S.checks.light;
     chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
     // 重ねたまま忘れないよう、重ねている間は何をする表示かを出す
-    if (settings.assist.edge && S.lastCap) chips.push('<span class="pill">輪郭にヘッドを合わせてください</span>');
+    if (a.edge && S.lastCap) chips.push('<span class="pill">輪郭にヘッドを合わせてください</span>');
+    // 照明の左右差（l > 0：画面右側が明るい〔画面左側が暗い〕）とピンぼけ。撮影する前に直せるよう、顔位置設定で知らせる
+    if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${l > 0 ? '左' : '右'}側が暗めです</span>`);
+    if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
     const which = mirrorWhich();
@@ -570,7 +570,7 @@ $('#banner-x').addEventListener('click', () => {
 // カメラ（ホーム）
 // ======================================================================
 function updateHome() {
-  $('#home-hint').textContent = cam.wakeSupported ? '補助の ON / OFF は設定から' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
+  $('#home-hint').textContent = cam.wakeSupported ? '水準器・照明・ピンぼけは顔位置設定に出ます' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
   renderChips();
 }
 holdButton($('#btn-flip'), (v) => { S.flip = v; renderChips(); });
@@ -601,7 +601,8 @@ function startLevel() {
 }
 function updateLevel() {
   const el = $('#level'), ask = $('#level-ask');
-  const want = settings.assist.level && S.screen === 'home';
+  // 水準器はスタンドの設置に使うため、顔位置設定に出す
+  const want = settings.assist.level && S.screen === 'face';
   const needAsk = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' && !level.on;
   ask.hidden = !(want && needAsk);
   if (want && !needAsk && !level.on && 'DeviceMotionEvent' in window) startLevel();

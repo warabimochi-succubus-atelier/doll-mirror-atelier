@@ -114,7 +114,7 @@
           </div>
           <div class="row">
             <button class="btn btn-ghost btn-s" data-go="setup">設置ガイド</button>
-            <span class="hint" style="margin:0" id="home-hint">補助の ON / OFF は設定から</span>
+            <span class="hint" style="margin:0" id="home-hint">水準器・照明・ピンぼけは顔位置設定に出ます</span>
           </div>
         </div>
 
@@ -160,6 +160,8 @@
               <li>合わせ終えたら「撮影して完了」を押す</li>
             </ol>
             <p>ヘッドを動かした後は、「元の位置」の「輪郭を重ねる」で、撮影したときの輪郭に合わせて戻します。</p>
+            <p>水準器（左下）でスタンドの傾きを、映像の上の表示で照明の左右差とピンぼけを確かめてから撮影します。端末とヘッドの置き方は、設置ガイドを見てください。</p>
+            <p><button class="btn btn-ghost btn-s" data-go="setup" value="">設置ガイドを見る</button></p>
             <p>2本指で広げると映像を拡大し、ガイドと輪郭も一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、撮影する範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
           </template>
           <!-- 合わせ終えたヘッドを撮影し、ミラーの撮影画像と元の位置の輪郭にする（撮影せずに戻るときは「‹」） -->
@@ -269,13 +271,13 @@
       <!-- ========== 設定 ========== -->
       <section class="page" data-show="settings">
         <div class="card">
-          <h2>カメラ画面の補助</h2>
-          <label class="set"><span class="grow">水準器<small>端末の左右・前後の傾きを表示します</small></span><input type="checkbox" class="switch" data-assist="level"></label>
-          <label class="set"><span class="grow">フレームガイド<small>ヘッド輪郭の目安の楕円</small></span><input type="checkbox" class="switch" data-assist="frame"></label>
+          <h2>設置・確認の補助</h2>
+          <label class="set"><span class="grow">水準器<small>顔位置設定に、端末の左右・前後の傾きを表示します</small></span><input type="checkbox" class="switch" data-assist="level"></label>
+          <label class="set"><span class="grow">フレームガイド<small>ホームに、ヘッドを映す大きさの目安の楕円を表示します（顔位置設定ではいつも表示します）</small></span><input type="checkbox" class="switch" data-assist="frame"></label>
           <div class="set"><span class="grow">楕円の大きさ</span><input type="range" min="25" max="95" id="s-frame" style="width:120px" aria-label="楕円の大きさ"></div>
-          <label class="set"><span class="grow">照明の左右差チェック<small>額の明るさで判定します（目安）</small></span><input type="checkbox" class="switch" data-assist="light"></label>
-          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>撮影時のチェックは、この設定に関わらず行います</small></span><input type="checkbox" class="switch" data-assist="sharp"></label>
-          <label class="set"><span class="grow">中心線の表示<small>中心線と目盛り付きの横線</small></span><input type="checkbox" class="switch" data-assist="center"></label>
+          <label class="set"><span class="grow">照明の左右差チェック<small>顔位置設定で、額の明るさで判定します（目安）</small></span><input type="checkbox" class="switch" data-assist="light"></label>
+          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>顔位置設定で知らせます。撮影時のチェックは、この設定に関わらず行います</small></span><input type="checkbox" class="switch" data-assist="sharp"></label>
+          <label class="set"><span class="grow">中心線の表示<small>ホームに、中心線と目盛り付きの横線を表示します（顔位置設定ではいつも表示します）</small></span><input type="checkbox" class="switch" data-assist="center"></label>
         </div>
         <!-- ズーム倍率・輪郭表示・ミラーの表示の設定は、使う画面（ホーム・ミラー）で変える（設定画面には置かない） -->
         <div class="card">
