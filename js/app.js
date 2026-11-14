@@ -1097,6 +1097,7 @@ function updateSettings() {
   $$('[data-assist]').forEach((el) => (el.checked = !!settings.assist[el.dataset.assist]));
   $('#s-frame').value = Math.round(settings.frame * 100);
   $('#s-delay').value = String(settings.delay);
+  $('#s-camera').textContent = cam.ready ? cam.label || '（名前なし）' : 'カメラを起動していません';
 }
 $$('[data-assist]').forEach((el) => el.addEventListener('change', () => { settings.assist[el.dataset.assist] = el.checked; save(); }));
 $('#s-frame').addEventListener('input', (e) => { settings.frame = +e.target.value / 100; save(); });
