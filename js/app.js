@@ -23,7 +23,7 @@ const S = {
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで取り直しを案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。左右の取り違えを防ぐため、設定には残さず起動時は OFF）
-  mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 } },
+  mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 取り込み（待ち時間）中の番号。画面を離れたら取りやめる
   // シミュレーション画面
@@ -54,6 +54,7 @@ function show(s) {
   if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら取り込みをやめる
   S.mode = null;
   if (s === 'face') { S.face.angle0 = settings.angle; S.startupNote = false; updateFace(); }
+  zoomOpen = false;
   if (s === 'mirror') updateMirror();
   if (s === 'sim') { S.dirty = true; updateSimPanel(); }
   if (s === 'home') updateHome();
@@ -148,19 +149,89 @@ function zoomChoices() {
   if (!list.length) list.push(r.min);
   return list;
 }
+/**
+ * 倍率の表示（映像・画像の右）。どの画面でも、今の倍率を小さく1つだけ表示し、タップすると倍率の候補を開く
+ * （細かい調整はピンチ。映像を隠す部分を小さくするため、候補は開いたときだけ表示する）
+ * - ホーム：カメラのズーム倍率（取り込む範囲が変わる）
+ * - 顔位置設定・ミラー：表示の拡大（1× が映像の全体）
+ * - シミュレーション：表示の拡大（1× が画像の全体）
+ */
+let zoomOpen = false, zoomHtml = '';
+const VIEW_ZOOMS = [1, 1.5, 2, 3, 4];
+/** 今の画面の倍率と候補（倍率の表示が無い画面・状態では null） */
+function zoomState() {
+  if (S.screen === 'home') return cam.ready ? { v: cam.zoom, list: zoomChoices(), label: 'ズーム倍率' } : null;
+  if (S.screen === 'face' || S.screen === 'mirror') return cam.ready ? { v: liveView().s, list: VIEW_ZOOMS, label: '表示の倍率' } : null;
+  if (S.screen === 'sim') return S.sim && S.view ? { v: S.view.s / simFitScale(), list: VIEW_ZOOMS, label: '表示の倍率' } : null;
+  return null;
+}
 function updateZoomButtons() {
-  const z = $('#zoom');
-  if (!cam.ready) { z.innerHTML = ''; return; }
-  z.innerHTML = zoomChoices().map((v) => `<button data-z="${v}" class="${Math.abs(v - cam.zoom) < 0.01 ? 'on' : ''}">${v}×</button>`).join('');
+  const z = $('#zoom'), st = zoomState();
+  if (!st) zoomOpen = false;
+  const html = !st ? '' : `<button class="zoom-cur mono" aria-expanded="${zoomOpen}" aria-label="${st.label} ${st.v.toFixed(1)}倍（タップで候補を表示）">${st.v.toFixed(1)}×</button>`
+    + (zoomOpen ? `<div class="zoom-list">${st.list.map((v) => `<button data-z="${v}" class="${Math.abs(v - st.v) < 0.01 ? 'on' : ''}">${v}×</button>`).join('')}</div>` : '');
+  // 毎コマ呼ぶため、変わったときだけ書き換える（押している途中のボタンを作り直さないように）
+  if (html !== zoomHtml) { z.innerHTML = html; zoomHtml = html; }
+}
+/** 候補から選んだ倍率にする */
+function chooseZoom(v) {
+  const c = [cv.width / 2, cv.height / 2];
+  if (S.screen === 'home') setZoom(v);
+  else if (liveView()) {
+    const lv = liveView();
+    if (v === 1) Object.assign(lv, { s: 1, x: 0, y: 0 }); else zoomLive(v / lv.s, c);
+  } else if (S.screen === 'sim' && S.sim) {
+    if (v === 1) fitView(); else zoomView((v * simFitScale()) / S.view.s, c);
+  }
 }
 async function setZoom(v) {
   if (Math.abs(v - cam.zoom) < 0.01) return;
+  const z0 = cam.zoom;
   await cam.setZoom(v);
-  settings.zoom = cam.zoom; save();
-  if (S.mirrorCap || S.sim) { S.headMoved = true; toast('ズームを変えたため、ミラーの取り込み画像と重ならない場合があります。取り直してください'); }
-  updateZoomButtons();
+  finishZoom(z0);
 }
-$('#zoom').addEventListener('click', (e) => { const b = e.target.closest('[data-z]'); if (b) setZoom(+b.dataset.z); });
+/** ズーム倍率を変え終えたとき：設定に保存し、取り込み画像がある場合は重ね方を案内する */
+function finishZoom(z0) {
+  settings.zoom = cam.zoom; save();
+  if (Math.abs(cam.zoom - z0) >= 0.01 && (S.mirrorCap || S.sim)) toast('ミラーでは、取り込み画像をズームに合わせて拡大・縮小して重ねます。画質が下がる・ずれる場合は取り直してください');
+  updateZoomButtons(); renderChips();
+}
+/**
+ * ホームのピンチ・マウスホイールによるズーム（操作中）。倍率は 0.1 刻み。
+ * カメラのズーム制御は呼び出しに時間がかかるため、前の呼び出しが終わるまでは最後の値だけを残して待たせる
+ */
+const camZoom = { busy: false, next: null, z0: null, timer: 0, wheel: null };
+function pinchZoom(z) {
+  const r = cam.zoomRange();
+  z = Math.round(G.clamp(z, r.min, r.max) * 10) / 10;
+  if (camZoom.z0 == null) camZoom.z0 = cam.zoom;
+  camZoom.next = z;
+  if (camZoom.busy) return;
+  (async () => {
+    camZoom.busy = true;
+    while (camZoom.next != null) {
+      const v = camZoom.next; camZoom.next = null;
+      if (Math.abs(v - cam.zoom) >= 0.01) await cam.setZoom(v);
+      updateZoomButtons(); renderChips();
+    }
+    camZoom.busy = false;
+  })();
+}
+/** ピンチ・マウスホイールのズームを終える */
+function endPinchZoom() {
+  if (camZoom.z0 == null) return;
+  const z0 = camZoom.z0;
+  camZoom.z0 = null; camZoom.wheel = null;
+  const done = () => (camZoom.busy ? setTimeout(done, 50) : finishZoom(z0));
+  done();
+}
+$('#zoom').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-z]');
+  if (b) { zoomOpen = false; chooseZoom(+b.dataset.z); updateZoomButtons(); return; }
+  if (e.target.closest('.zoom-cur')) { zoomOpen = !zoomOpen; updateZoomButtons(); }
+});
+// 候補を開いたまま他の所を触ったら閉じる
+document.addEventListener('pointerdown', (e) => { if (zoomOpen && !e.target.closest('#zoom')) { zoomOpen = false; updateZoomButtons(); } });
 
 // ---------------- 取り込み ----------------
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -192,7 +263,7 @@ async function capture() {
       if (r !== 'use') return null;
     }
     const cap = {
-      canvas, w: canvas.width, h: canvas.height, angle: settings.angle, time: new Date(),
+      canvas, w: canvas.width, h: canvas.height, angle: settings.angle, zoom: cam.zoom, time: new Date(),
       guides: { frame: settings.frame },
     };
     S.lastCap = cap;
@@ -217,6 +288,7 @@ function loop() {
   requestAnimationFrame(loop);
   if ($('#stage').hidden) return;
   fitCanvas();
+  updateZoomButtons();
   if (S.screen === 'sim') { if (S.dirty && S.sim) { S.dirty = false; drawSim(); } return; }
   drawLive();
 }
@@ -271,9 +343,9 @@ function drawLive() {
   const d = G.coverRect(c.sw, c.sh, W, H);
   const fw = c.sw, fh = c.sh;
   let V = [d.s, 0, 0, d.s, d.x, d.y];
-  if (S.screen === 'face') {
-    // 顔位置設定：ピンチで拡大した表示。映像とガイドを同じ変換で描き、ガイドが映像に追従する
-    const fv = clampFaceView();
+  if (liveView()) {
+    // 顔位置設定・ミラー：ピンチで拡大した表示。映像と重ね表示を同じ変換で描き、重ね表示が映像に追従する
+    const fv = clampLiveView();
     V = G.mul([fv.s, 0, 0, fv.s, fv.x, fv.y], V);
   } else if (S.screen === 'home' && S.flip) {
     // 左右反転：映像と補助の表示をまとめて、画面の中央で左右に反転する
@@ -298,11 +370,21 @@ function drawLive() {
   }
 }
 
+/**
+ * 取り込み画像の座標 → 映像の座標。取り込んだ後にズーム倍率を変えた場合は、倍率の比で映像の中央を基準に拡大・縮小する
+ * （ズームは映像の中央を基準に拡大するため、比で合わせるとヘッドに重なる）
+ */
+function capToFrame(cap, fw, fh) {
+  const k = zoomRatio(cap);
+  return G.mul(G.T(fw / 2, fh / 2), G.S(k), G.T(-fw / 2, -fh / 2), G.S(fw / cap.w));
+}
+/** 今のズーム倍率 ÷ 取り込んだときのズーム倍率 */
+const zoomRatio = (cap) => (cap.zoom && cam.zoom ? cam.zoom / cap.zoom : 1);
+
 function drawCapEdges(cap, V, fw, alpha) {
-  const k = fw / cap.w;
   ctx.save();
   ctx.globalAlpha = 1 - alpha / 100;
-  ctx.setTransform(...G.mul(V, G.S(k)));
+  ctx.setTransform(...G.mul(V, capToFrame(cap, fw, (fw * cap.h) / cap.w)));
   ctx.drawImage(IM.tintEdges(edgesOf(cap.canvas), settings.lineColor, tintCache), 0, 0, cap.w, cap.h);
   ctx.restore();
 }
@@ -313,7 +395,7 @@ function drawMirror(V, fw, fh) {
   const cap = which === 'after' ? S.sim.cap : S.mirrorCap;
   if (!cap) return;
   const img = which === 'after' ? S.sim.full() : cap.canvas;
-  const Vc = G.mul(V, G.S(fw / cap.w));
+  const Vc = G.mul(V, capToFrame(cap, fw, fh));
   const ax = G.axis(cap.w, cap.h, cap.angle);
   const a = S.mirror.adj;
   const adj = G.mul(G.T(ax.c[0] + a.x * cap.w, ax.c[1] + a.y * cap.w), G.R(a.r * G.DEG), G.S(a.s), G.T(-ax.c[0], -ax.c[1]));
@@ -359,6 +441,10 @@ function renderChips() {
   if (S.screen === 'mirror' && (S.mirrorCap || S.sim)) {
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '左基準：ドールの左顔（画面右側）を反転' : '右基準：ドールの右顔（画面左側）を反転'}</span>`);
     chips.push(`<span class="pill">${S.mirror.which === 'after' && S.sim ? '修正後' : '修正前'}</span>`);
+    const mc = S.mirror.which === 'after' && S.sim ? S.sim.cap : S.mirrorCap;
+    if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
+      chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で取り込んだ画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（取り直すとはっきりします）</span>`);
+    }
   }
   if (S.screen === 'sim' && S.sim) {
     if (S.before) chips.push('<span class="pill bad">修正前を表示中</span>');
@@ -470,7 +556,6 @@ setInterval(updateLevel, 120);
 // ======================================================================
 function updateFace() {
   $('#angle-v').textContent = fmtAngle(settings.angle);
-  $('#btn-face-fit').hidden = S.face.view.s <= 1.001;
   renderChips();
 }
 $$('[data-angle]').forEach((b) => b.addEventListener('click', () => {
@@ -479,21 +564,24 @@ $$('[data-angle]').forEach((b) => b.addEventListener('click', () => {
 $('#btn-angle0').addEventListener('click', () => { settings.angle = 0; save(); updateFace(); });
 
 // ---------------- 顔位置設定の表示（拡大・移動） ----------------
+// ---------------- 顔位置設定・ミラーの表示（拡大・移動） ----------------
 const FACE_ZOOM_MAX = 8;
+/** 今の画面の表示の拡大・移動（顔位置設定とミラーだけ。それ以外は null） */
+function liveView() { return S.screen === 'face' ? S.face.view : S.screen === 'mirror' ? S.mirror.view : null; }
 /** 拡大した表示が画面の外にはみ出さないようにする（1倍未満にはしない）。今の表示を返す */
-function clampFaceView() {
-  const v = S.face.view, W = cv.width, H = cv.height;
+function clampLiveView() {
+  const v = liveView(), W = cv.width, H = cv.height;
   v.s = G.clamp(v.s, 1, FACE_ZOOM_MAX);
   v.x = G.clamp(v.x, W - W * v.s, 0); v.y = G.clamp(v.y, H - H * v.s, 0);
   return v;
 }
 /** 表示を at（画面の座標）を中心に f 倍する */
-function zoomFace(f, at) {
-  const v = S.face.view, s = G.clamp(v.s * f, 1, FACE_ZOOM_MAX), k = s / v.s;
+function zoomLive(f, at) {
+  const v = liveView(), s = G.clamp(v.s * f, 1, FACE_ZOOM_MAX), k = s / v.s;
   v.x = at[0] - (at[0] - v.x) * k; v.y = at[1] - (at[1] - v.y) * k; v.s = s;
-  clampFaceView(); updateFace();
+  clampLiveView();
 }
-$('#btn-face-fit').addEventListener('click', () => { S.face.view = { s: 1, x: 0, y: 0 }; updateFace(); });
+
 $('#btn-face-help').addEventListener('click', () => choose({ title: '合わせ方', html: $('#face-help').innerHTML, cancel: '閉じる' }));
 $('#btn-face-done').addEventListener('click', () => back());
 
@@ -621,6 +709,11 @@ async function openSim() {
 $('#btn-sim-mirror').addEventListener('click', () => openMirror('after'));
 
 // ---------------- 表示（拡大・移動） ----------------
+/** 画像全体を表示する倍率（シミュレーションの倍率の表示の 1×） */
+function simFitScale() {
+  const cap = S.sim.cap, m = 8 * DPR();
+  return G.containRect(cap.w, cap.h, cv.width - 2 * m, cv.height - 2 * m).s;
+}
 function fitView() {
   const cap = S.sim.cap, m = 8 * DPR();
   const r = G.containRect(cap.w, cap.h, cv.width - 2 * m, cv.height - 2 * m);
@@ -635,7 +728,6 @@ function zoomView(f, at) {
   v.x = at[0] - (at[0] - v.x) * k; v.y = at[1] - (at[1] - v.y) * k; v.s = s; v.auto = false;
   S.dirty = true;
 }
-$('#btn-fit').addEventListener('click', () => S.sim && fitView());
 
 function drawSim() {
   const sim = S.sim;
@@ -686,14 +778,25 @@ const evPos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX 
 stage.addEventListener('pointerdown', (e) => {
   if (e.target.closest('.ov, button')) return;
   const p = evPos(e);
-  if (S.screen === 'face') {
-    // 顔位置設定：1本指で表示の移動、2本指（ピンチ）で表示の拡大・縮小
+  if (S.screen === 'home') {
+    // ホーム：2本指（ピンチ）でズーム倍率を変える（1本指の操作は無い）
+    if (!cam.ready) return;
+    try { stage.setPointerCapture(e.pointerId); } catch { /* 取り込めなくても操作は続ける */ }
+    pts.set(e.pointerId, p);
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      G_.kind = 'homeZoom'; G_.z0 = cam.zoom; G_.p0 = { d: Math.hypot(b[0] - a[0], b[1] - a[1]) };
+    }
+    return;
+  }
+  if (liveView()) {
+    // 顔位置設定・ミラー：1本指で表示の移動、2本指（ピンチ）で表示の拡大・縮小
     try { stage.setPointerCapture(e.pointerId); } catch { /* 取り込めなくても操作は続ける */ }
     pts.set(e.pointerId, p);
     if (pts.size === 1) { G_.kind = 'facePan'; G_.last = p; }
     else if (pts.size === 2) {
       const [a, b] = [...pts.values()];
-      G_.kind = 'facePinch'; G_.v0 = { ...S.face.view };
+      G_.kind = 'facePinch'; G_.v0 = { ...liveView() };
       G_.p0 = { d: Math.hypot(b[0] - a[0], b[1] - a[1]), mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] };
     }
     return;
@@ -730,10 +833,17 @@ stage.addEventListener('pointermove', (e) => {
   if (!pts.has(e.pointerId)) return;
   const p = evPos(e);
   pts.set(e.pointerId, p);
-  if (S.screen === 'face') {
-    const v = S.face.view;
+  if (S.screen === 'home') {
+    if (pts.size === 2 && G_.kind === 'homeZoom') {
+      const [a, b] = [...pts.values()];
+      pinchZoom(G_.z0 * Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.max(1, G_.p0.d));
+    }
+    return;
+  }
+  if (liveView()) {
+    const v = liveView();
     if (pts.size === 1 && G_.kind === 'facePan') {
-      v.x += p[0] - G_.last[0]; v.y += p[1] - G_.last[1]; clampFaceView();
+      v.x += p[0] - G_.last[0]; v.y += p[1] - G_.last[1]; clampLiveView();
       G_.last = p;
     } else if (pts.size === 2 && G_.kind === 'facePinch') {
       const [a, b] = [...pts.values()];
@@ -743,7 +853,7 @@ stage.addEventListener('pointermove', (e) => {
       v.s = s;
       v.x = mid[0] - (G_.p0.mid[0] - v0.x) * (s / v0.s);
       v.y = mid[1] - (G_.p0.mid[1] - v0.y) * (s / v0.s);
-      clampFaceView(); updateFace();
+      clampLiveView();
     }
     return;
   }
@@ -785,7 +895,11 @@ stage.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   if (!pts.has(e.pointerId)) return;
   pts.delete(e.pointerId);
-  if (S.screen === 'face') {
+  if (S.screen === 'home') {
+    if (G_.kind === 'homeZoom' && pts.size < 2) { G_.kind = null; G_.p0 = null; endPinchZoom(); }
+    return;
+  }
+  if (liveView()) {
     // 2本指のうち1本を離した：残りの指で表示の移動を続ける
     if (pts.size === 1) { G_.kind = 'facePan'; G_.last = [...pts.values()][0]; } else if (!pts.size) G_.kind = null;
     G_.p0 = null;
@@ -810,7 +924,17 @@ function endPointer(e) {
 stage.addEventListener('pointerup', endPointer);
 stage.addEventListener('pointercancel', endPointer);
 stage.addEventListener('wheel', (e) => {
-  if (S.screen === 'face') { e.preventDefault(); zoomFace(Math.exp(-e.deltaY * 0.0015), evPos(e)); return; }
+  if (liveView()) { e.preventDefault(); zoomLive(Math.exp(-e.deltaY * 0.0015), evPos(e)); return; }
+  if (S.screen === 'home' && cam.ready) {
+    // PC：マウスホイールでズーム倍率を変える（回し終えて少し経ったら保存する）
+    e.preventDefault();
+    // 1回の量が小さくても進むよう、丸める前の値を積み重ねる
+    const r = cam.zoomRange();
+    camZoom.wheel = G.clamp((camZoom.wheel ?? cam.zoom) * Math.exp(-e.deltaY * 0.0015), r.min, r.max);
+    pinchZoom(camZoom.wheel);
+    clearTimeout(camZoom.timer); camZoom.timer = setTimeout(endPinchZoom, 400);
+    return;
+  }
   if (S.screen !== 'sim' || !S.view) return;
   e.preventDefault();
   zoomView(Math.exp(-e.deltaY * 0.0015), evPos(e));

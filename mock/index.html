@@ -90,6 +90,7 @@
     .zoom { right: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
     .zoom button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(20,14,16,.55); color: #fff; font-size: 12px; cursor: pointer; }
     .zoom button.on { background: #fff; color: #222; border-color: #fff; font-weight: 700; }
+    .zoom .zoom-cur { width: auto; min-width: 46px; height: 30px; padding: 0 8px; border-radius: 999px; font-weight: 700; }
     .level { left: 10px; top: 10px; }
     .level .bubble { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.7); position: relative; }
     .level .bubble::before { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #6fd39a; }
@@ -304,7 +305,7 @@
   <section class="shot" id="s-home" data-title="カメラ（ホーム）">
     <div class="shot-cap">
       <h2><span class="no">1</span>カメラ（ホーム）</h2>
-      <p>起動時の画面。背面カメラの映像を常に表示し、補助（水準器・フレームガイド・照明の左右差・ピンぼけ）とズームを重ねる。起動時は中心線の確認を案内する。</p>
+      <p>起動時の画面。背面カメラの映像を常に表示し、補助（水準器・フレームガイド・照明の左右差・ピンぼけ）とズームを重ねる。ズームは右の倍率の表示をタップして候補から選ぶか、2本指で広げる・狭める操作で変える（0.1 倍刻み）。起動時は中心線の確認を案内する。</p>
     </div>
     <div class="phone">
       <header class="topbar">
@@ -334,7 +335,7 @@
           <span class="pill good">ピント良好</span>
         </div>
         <div class="ov zoom" role="group" aria-label="ズーム">
-          <button>1×</button><button class="on">2×</button><button>3×</button>
+          <button class="zoom-cur mono">2.0×</button>
         </div>
         <div class="ov banner">
           <span class="grow">ヘッドが中心線に合っているか確認してください</span>
@@ -419,6 +420,7 @@
         <button class="btn btn-ghost btn-s">合わせ方</button>
       </header>
       <div class="stage">
+        <div class="ov zoom" role="group" aria-label="倍率"><button class="zoom-cur mono">1.0×</button></div>
         <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
           <use href="#head"/>
           <g transform="rotate(0.4 180 320)"><use href="#guides"/></g>
@@ -438,7 +440,7 @@
           <button class="btn btn-ghost btn-s">垂直に戻す</button>
           <span class="hint" style="margin:0">±10° まで</span>
         </div>
-        <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します。</p>
+        <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します。右の倍率の表示をタップして候補から選ぶこともできます。</p>
         <button class="btn btn-primary btn-block" data-goto="s-face-close" style="margin-top:6px">完了</button>
       </div>
     </div>
@@ -506,7 +508,7 @@
   <section class="shot" id="s-mirror" data-title="ミラー">
     <div class="shot-cap">
       <h2><span class="no">6</span>ミラー</h2>
-      <p>ライブ映像の上に、取り込み画像の基準の側を中心線で反転して、反対側の半分にだけ重ねる。透明度を上げると下のライブ映像が透け、ガイドにして描ける。</p>
+      <p>ライブ映像の上に、取り込み画像の基準の側を中心線で反転して、反対側の半分にだけ重ねる。透明度を上げると下のライブ映像が透け、ガイドにして描ける。2本指で広げると、ライブ映像と重ねた画像が一緒に拡大される（顔位置設定と同じ）。取り込み後にズーム倍率を変えた場合は、取り込み画像を倍率の比で拡大・縮小して重ねる。</p>
     </div>
     <div class="phone" id="mirror-phone">
       <header class="topbar">
@@ -515,6 +517,7 @@
         <button class="btn btn-ghost btn-s" data-goto="s-face">顔位置設定</button>
       </header>
       <div class="stage">
+        <div class="ov zoom" role="group" aria-label="倍率"><button class="zoom-cur mono">1.0×</button></div>
         <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
           <use href="#head"/>
           <!-- 反転した基準側 -->
@@ -683,6 +686,7 @@
         <button class="btn btn-s hold" data-hold>修正前</button>
       </div>
       <div class="stage">
+        <div class="ov zoom" role="group" aria-label="倍率"><button class="zoom-cur mono">1.0×</button></div>
         <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
           <use href="#head"/>
           <g class="mod">

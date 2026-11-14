@@ -51,7 +51,6 @@
     <div class="simbar" data-show="sim">
       <button class="btn btn-s" id="btn-undo" title="元に戻す" aria-label="元に戻す">↶</button>
       <button class="btn btn-s" id="btn-redo" title="やり直す" aria-label="やり直す">↷</button>
-      <button class="btn btn-ghost btn-s" id="btn-fit" title="画像全体を表示">全体</button>
       <span class="grow"></span>
       <button class="btn btn-s hold" id="btn-before" title="押している間だけ修正前を表示">修正前</button>
     </div>
@@ -68,8 +67,7 @@
         </div>
         <button class="ov pill level-ask" id="level-ask" hidden>水準器を使う</button>
         <div class="ov chips-top" id="chips"></div>
-        <div class="ov zoom" id="zoom" data-show="home" role="group" aria-label="ズーム"></div>
-        <button class="ov pill face-fit" id="btn-face-fit" data-show="face" hidden>全体を表示</button>
+        <div class="ov zoom" id="zoom" data-show="home face mirror sim" role="group" aria-label="倍率"></div>
         <div class="ov banner" id="banner" hidden>
           <span class="grow" id="banner-text"></span>
           <span id="banner-act"></span>
