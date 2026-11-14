@@ -27,7 +27,7 @@ const S = {
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 取り込み（待ち時間）中の番号。画面を離れたら取りやめる
   // シミュレーション画面
-  view: null, before: false, mode: null, big: false, dirty: true,
+  view: null, before: false, mode: null, dirty: true,
   checks: { light: 0, sharp: null, t: 0 },
 };
 const edgeCache = new WeakMap();
@@ -1004,7 +1004,6 @@ function updateSimPanel() {
     $('#btn-relasso').textContent = p.copy ? '消す範囲を囲み直す' : '囲み直す';
     $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
     $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
-    $('#step-size').textContent = S.big ? '大' : '小';
     const notes = [];
     if (p.copy && p.origin === 'keep') notes.push('「コピー先」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
     else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
@@ -1029,15 +1028,15 @@ function edit(f) {
   if (!p) return;
   sim.begin(); f(p, sim); sim.touch(); updateSimPanel(); S.dirty = true;
 }
-// 微調整：1回の量は画像上の実寸ではなく、表示倍率に応じた一定の見た目の量
-$('#step-size').addEventListener('click', () => { S.big = !S.big; updateSimPanel(); });
+// 微調整：1回の量は画像上の実寸ではなく、表示倍率に応じた一定の見た目の量（量の切り替えは無い。大きく動かすときはドラッグ・ピンチ）
 $$('[data-mv]').forEach((b) => b.addEventListener('click', () => edit((p) => {
-  const [dx, dy] = b.dataset.mv.split(',').map(Number), st = ((S.big ? 8 : 1.5) * DPR()) / S.view.s;
+  const [dx, dy] = b.dataset.mv.split(',').map(Number), st = (1.5 * DPR()) / S.view.s;
   p.t.tx += dx * st; p.t.ty += dy * st;
 })));
-$$('[data-rot]').forEach((b) => b.addEventListener('click', () => edit((p) => { p.t.rot += +b.dataset.rot * (S.big ? 2 : 0.5) * G.DEG; })));
+$$('[data-rot]').forEach((b) => b.addEventListener('click', () => edit((p) => { p.t.rot += +b.dataset.rot * 0.5 * G.DEG; })));
 $$('[data-sc]').forEach((b) => b.addEventListener('click', () => edit((p) => {
-  const f = 1 + +b.dataset.sc * (S.big ? 0.05 : 0.01), dir = $('#sc-dir').value;
+  // data-sc は「方向,向き」（方向：all 全体 / len 長さ〔パーツの長い方向〕 / thk 太さ〔長さに直角な方向〕）
+  const [dir, sg] = b.dataset.sc.split(','), f = 1 + +sg * 0.01;
   if (dir !== 'thk') p.t.sl = G.clamp(p.t.sl * f, 0.2, 5);
   if (dir !== 'len') p.t.st = G.clamp(p.t.st * f, 0.2, 5);
 })));

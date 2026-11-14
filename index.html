@@ -213,13 +213,15 @@
             <div class="row" style="margin-top:8px;align-items:flex-start">
               <div class="pad" aria-label="移動">
                 <span></span><button data-mv="0,-1">↑</button><span></span>
-                <button data-mv="-1,0">←</button><button class="c" id="step-size" title="微調整の量を切り替え">小</button><button data-mv="1,0">→</button>
+                <button data-mv="-1,0">←</button><span></span><button data-mv="1,0">→</button>
                 <span></span><button data-mv="0,1">↓</button><span></span>
               </div>
               <div class="grow" style="display:grid;gap:5px">
                 <div class="row"><span class="lbl short">回転</span><div class="fine"><button class="btn" data-rot="-1">⟲</button><button class="btn" data-rot="1">⟳</button></div><button class="btn btn-ghost btn-s" id="btn-pivot" aria-pressed="false" title="画像をタップした位置を回転の支点にします">支点</button></div>
-                <div class="row"><span class="lbl short">大きさ</span><div class="fine"><button class="btn" data-sc="-1">−</button><button class="btn" data-sc="1">＋</button></div>
-                  <select id="sc-dir" aria-label="拡大縮小の方向"><option value="all">全体</option><option value="len">長さ</option><option value="thk">太さ</option></select></div>
+                <!-- 大きさ：全体・長さ・太さをそれぞれのボタンで変える（方向の切り替えは無い）。長さ・太さはパーツの長い方向と、それに直角な方向 -->
+                <div class="row"><span class="lbl short">大きさ</span><div class="fine"><button class="btn" data-sc="all,-1" aria-label="全体を小さく">−</button><button class="btn" data-sc="all,1" aria-label="全体を大きく">＋</button></div></div>
+                <div class="row"><span class="lbl short">長さ</span><div class="fine"><button class="btn" data-sc="len,-1" aria-label="長さを短く">−</button><button class="btn" data-sc="len,1" aria-label="長さを長く">＋</button></div></div>
+                <div class="row"><span class="lbl short">太さ</span><div class="fine"><button class="btn" data-sc="thk,-1" aria-label="太さを細く">−</button><button class="btn" data-sc="thk,1" aria-label="太さを太く">＋</button></div></div>
               </div>
             </div>
             <div class="row">
