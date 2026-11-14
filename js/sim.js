@@ -1,8 +1,8 @@
 // シミュレーション（パーツ移動）の内容と描画、取り消し（Undo / Redo）
 // 仕様書「シミュレーション画面」「パーツ選択」「パーツ移動シミュレーション」を参照
 //
-// 重ね順：取り込み画像 → 元の位置の処理（薄くする・消す）→ パーツの仮置きレイヤー（乗算）
-// パーツの選択範囲は取り込み画像の座標で持つ。
+// 重ね順：撮影画像 → 元の位置の処理（薄くする・消す）→ パーツの仮置きレイヤー（乗算）
+// パーツの選択範囲は撮影画像の座標で持つ。
 
 import * as G from './geom.js';
 import * as IM from './imaging.js';
@@ -28,7 +28,7 @@ let seq = 1;
 
 export class Sim {
   /**
-   * @param cap 取り込み画像 { canvas, w, h, angle, guides: { frame }, time }
+   * @param cap 撮影画像 { canvas, w, h, angle, guides: { frame }, time }
    */
   constructor(cap) {
     this.cap = cap;
@@ -72,7 +72,7 @@ export class Sim {
   redo() { if (!this.redoStack.length) return false; this.undoStack.push(this.snapshot()); this.restore(this.redoStack.pop()); return true; }
 
   touch() { this.ver++; }
-  /** 中心線の角度を変えたとき（取り込み画像に適用する場合）：コピー先の範囲（中心線で反転した位置）を取り出し直す */
+  /** 中心線の角度を変えたとき（撮影画像に適用する場合）：コピー先の範囲（中心線で反転した位置）を取り出し直す */
   setAngle(deg) { this.cap.angle = deg; this.parts.forEach((p) => { p._ox = null; }); this.touch(); }
 
   // ---------------- パーツ ----------------
@@ -190,7 +190,7 @@ export class Sim {
   // ---------------- 描画 ----------------
   /**
    * @param ctx 描画先、V 画像の座標 → 描画先の座標の行列
-   * @param before true なら修正前（取り込み画像）だけを描く
+   * @param before true なら修正前（撮影画像）だけを描く
    */
   render(ctx, V, before = false) {
     ctx.save();
@@ -212,7 +212,7 @@ export class Sim {
     }
     ctx.restore();
   }
-  /** 修正後の画像（ミラーの「修正後」用。取り込み画像と同じ大きさ） */
+  /** 修正後の画像（ミラーの「修正後」用。撮影画像と同じ大きさ） */
   full() {
     if (this._full && this._fullVer === this.ver) return this._full;
     const c = IM.canvas(this.cap.w, this.cap.h);

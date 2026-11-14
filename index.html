@@ -30,7 +30,7 @@
       <div class="bar-title" id="bar-title" data-show="face mirror sim setup settings"></div>
       <span class="grow" data-show="home"></span>
       <button class="btn btn-ghost btn-s" data-show="face" id="btn-face-help">合わせ方</button>
-      <button class="btn btn-ghost btn-s" data-show="mirror" data-go="face">顔位置設定</button>
+      <button class="btn btn-ghost btn-s" data-show="mirror" id="btn-m-sim">シミュレーション</button>
       <button class="btn btn-ghost btn-s" data-show="sim" id="btn-sim-mirror">ミラーへ</button>
       <button class="round-btn" data-show="home" data-go="settings" title="設定" aria-label="設定">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 2.8l1.6 2.3 2.7-.6.6 2.7 2.3 1.6-1.2 2.5 1.2 2.5-2.3 1.6-.6 2.7-2.7-.6L12 21.2l-1.6-2.3-2.7.6-.6-2.7-2.3-1.6L6 12.7 4.8 10.2l2.3-1.6.6-2.7 2.7.6z"/></svg>
@@ -42,7 +42,7 @@
 
     <!-- 新しい版が届いたときの案内 -->
     <div id="update-bar" class="update-bar" role="status" hidden>
-      <span class="grow">新しい版があります。更新すると、取り込み画像とシミュレーションは消えます（設定は残ります）。</span>
+      <span class="grow">新しい版があります。更新すると、撮影画像とシミュレーションは消えます（設定は残ります）。</span>
       <button class="btn btn-ghost btn-s" id="update-later">あとで</button>
       <button class="btn btn-primary btn-s" id="update-now">更新する</button>
     </div>
@@ -85,7 +85,7 @@
           <div class="home-nav">
             <button class="btn nav-main" id="btn-mirror">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M10 6H5v12h5M14 6h5v12h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-              <span class="nav-text"><b>ミラー</b><small>映像を取り込み、左右を反転して重ねて比べる</small></span>
+              <span class="nav-text"><b>ミラー</b><small>映像を撮影し、左右を反転して重ねて比べる</small></span>
             </button>
             <div class="nav-sub">
               <button class="btn" data-go="face">
@@ -94,7 +94,7 @@
               </button>
               <button class="btn" id="btn-sim">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M11 15q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M14 10l2 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <span class="nav-text"><b>シミュレーション</b><small>取り込んでメイクの移動を試す</small></span>
+                <span class="nav-text"><b>シミュレーション</b><small>撮影してメイクの移動を試す</small></span>
               </button>
             </div>
           </div>
@@ -134,7 +134,7 @@
             <button class="btn btn-ghost btn-s" id="btn-angle0">垂直に戻す</button>
             <span class="hint" style="margin:0">±10° まで</span>
           </div>
-          <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、取り込む範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
+          <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、撮影する範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
           <!-- 合わせ方（ヘッダーの「合わせ方」でダイアログに表示する） -->
           <template id="face-help">
             <p>中心線は映像の中央に固定されています。ヘッド（またはスタンド）を動かして、ガイドに合わせます。</p>
@@ -199,8 +199,7 @@
             </div>
           </div>
           <div class="row" style="margin-top:6px">
-            <button class="btn grow" id="btn-retake">取り直し</button>
-            <button class="btn btn-primary grow" id="btn-m-sim">シミュレーションへ</button>
+            <button class="btn grow" id="btn-retake">撮り直し</button>
           </div>
         </div>
 
@@ -258,14 +257,14 @@
           <label class="set"><span class="grow">フレームガイド<small>ヘッド輪郭の目安の楕円</small></span><input type="checkbox" class="switch" data-assist="frame"></label>
           <div class="set"><span class="grow">楕円の大きさ</span><input type="range" min="25" max="95" id="s-frame" style="width:120px" aria-label="楕円の大きさ"></div>
           <label class="set"><span class="grow">照明の左右差チェック<small>額の明るさで判定します（目安）</small></span><input type="checkbox" class="switch" data-assist="light"></label>
-          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>取り込み時のチェックは、この設定に関わらず行います</small></span><input type="checkbox" class="switch" data-assist="sharp"></label>
+          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>撮影時のチェックは、この設定に関わらず行います</small></span><input type="checkbox" class="switch" data-assist="sharp"></label>
           <label class="set"><span class="grow">中心線の表示<small>中心線と合わせ用ガイド</small></span><input type="checkbox" class="switch" data-assist="center"></label>
-          <label class="set"><span class="grow">前回の取り込み画像の輪郭表示</span><input type="checkbox" class="switch" data-assist="edge"></label>
+          <label class="set"><span class="grow">前回の撮影画像の輪郭表示</span><input type="checkbox" class="switch" data-assist="edge"></label>
         </div>
         <div class="card">
-          <h2>カメラと取り込み</h2>
+          <h2>カメラと撮影</h2>
           <div class="set"><span class="grow">ズーム倍率<small id="s-zoom-note"></small></span><select id="s-zoom" aria-label="ズーム倍率"></select></div>
-          <div class="set"><span class="grow">取り込み時の待ち時間<small>ボタンを押したときの揺れが収まるまで待ちます</small></span>
+          <div class="set"><span class="grow">撮影時の待ち時間<small>ボタンを押したときの揺れが収まるまで待ちます</small></span>
             <select id="s-delay" aria-label="待ち時間"><option value="0">なし</option><option value="1">1秒</option><option value="2">2秒</option><option value="3">3秒</option><option value="5">5秒</option></select></div>
         </div>
         <div class="card">
@@ -282,7 +281,7 @@
         <div class="card">
           <h2>このアプリについて <span class="badge" data-app-version></span></h2>
           <ul class="plain">
-            <li>カメラの映像と取り込み画像は端末の外へ送らず、保存もしません。取り込み画像とシミュレーションは、アプリを開いている間だけ保持します。</li>
+            <li>カメラの映像と撮影画像は端末の外へ送らず、保存もしません。撮影画像とシミュレーションは、アプリを開いている間だけ保持します。</li>
             <li>設定（顔位置設定・ズーム倍率・補助の ON / OFF など）は、この端末のブラウザに保存します。</li>
             <li>シミュレーションは当たり確認用の目安です。</li>
             <li>作者・ライセンス・マニュアルへのリンクは、画面右上の ⓘ から開けます。</li>

@@ -17,15 +17,15 @@ const hhmm = (d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 // 作業内容（アプリを開いている間だけ保持する。端末には保存しない）
 const S = {
   screen: 'home',
-  mirrorCap: null,   // ミラーの取り込み画像 { canvas, w, h, angle, guides, time }
+  mirrorCap: null,   // ミラーの撮影画像 { canvas, w, h, angle, guides, time }
   sim: null,         // シミュレーション
-  lastCap: null,     // 前回の取り込み画像（輪郭表示用。ミラー・シミュレーションのどちらかと共用）
-  headMoved: false,  // ヘッドが動いた可能性がある（ミラーで取り直しを案内する）
+  lastCap: null,     // 前回の撮影画像（輪郭表示用。ミラー・シミュレーションのどちらかと共用）
+  headMoved: false,  // ヘッドが動いた可能性がある（ミラーで撮り直しを案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。左右の取り違えを防ぐため、設定には残さず起動時は OFF）
   mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
-  capturing: 0,      // 取り込み（待ち時間）中の番号。画面を離れたら取りやめる
+  capturing: 0,      // 撮影（待ち時間）中の番号。画面を離れたら取りやめる
   // シミュレーション画面
   view: null, before: false, mode: null, dirty: true,
   checks: { light: 0, sharp: null, t: 0 },
@@ -51,7 +51,7 @@ function show(s) {
     el.hidden = !el.dataset.show.split(' ').includes(s);
   });
   $('#bar-title').textContent = TITLES[s] || '';
-  if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら取り込みをやめる
+  if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら撮影をやめる
   S.mode = null;
   if (s === 'face') { S.face.angle0 = settings.angle; S.startupNote = false; updateFace(); }
   zoomOpen = false;
@@ -102,7 +102,7 @@ function updateCamMsg() {
   m.hidden = false;
   if (st === 'intro') {
     m.innerHTML = `<div class="box"><h2>カメラを使います</h2>
-      <p>このアプリは、スタンドに固定したドールヘッドを背面カメラで映し続けて使います。カメラの映像・取り込んだ画像は端末の外に送らず、保存もしません。</p>
+      <p>このアプリは、スタンドに固定したドールヘッドを背面カメラで映し続けて使います。カメラの映像・撮影した画像は端末の外に送らず、保存もしません。</p>
       <p>次にブラウザから「カメラの使用を許可しますか」と尋ねられたら、<b>許可</b>を選んでください。ホーム画面から起動した場合、起動のたびに尋ねられることがあります。</p>
       <button class="btn btn-primary" id="cam-go">カメラを起動</button></div>`;
     $('#cam-go').onclick = () => { settings.camIntroDone = true; save(); startCamera(); };
@@ -152,7 +152,7 @@ function zoomChoices() {
 /**
  * 倍率の表示（映像・画像の右）。どの画面でも、今の倍率を小さく1つだけ表示し、タップすると倍率の候補を開く
  * （細かい調整はピンチ。映像を隠す部分を小さくするため、候補は開いたときだけ表示する）
- * - ホーム：カメラのズーム倍率（取り込む範囲が変わる）
+ * - ホーム：カメラのズーム倍率（撮影する範囲が変わる）
  * - 顔位置設定・ミラー：表示の拡大（1× が映像の全体）
  * - シミュレーション：表示の拡大（1× が画像の全体）
  */
@@ -190,10 +190,10 @@ async function setZoom(v) {
   await cam.setZoom(v);
   finishZoom(z0);
 }
-/** ズーム倍率を変え終えたとき：設定に保存し、取り込み画像がある場合は重ね方を案内する */
+/** ズーム倍率を変え終えたとき：設定に保存し、撮影画像がある場合は重ね方を案内する */
 function finishZoom(z0) {
   settings.zoom = cam.zoom; save();
-  if (Math.abs(cam.zoom - z0) >= 0.01 && (S.mirrorCap || S.sim)) toast('ミラーでは、取り込み画像をズームに合わせて拡大・縮小して重ねます。画質が下がる・ずれる場合は取り直してください');
+  if (Math.abs(cam.zoom - z0) >= 0.01 && (S.mirrorCap || S.sim)) toast('ミラーでは、撮影画像をズームに合わせて拡大・縮小して重ねます。画質が下がる・ずれる場合は撮り直してください');
   updateZoomButtons(); renderChips();
 }
 /**
@@ -233,7 +233,7 @@ $('#zoom').addEventListener('click', (e) => {
 // 候補を開いたまま他の所を触ったら閉じる
 document.addEventListener('pointerdown', (e) => { if (zoomOpen && !e.target.closest('#zoom')) { zoomOpen = false; updateZoomButtons(); } });
 
-// ---------------- 取り込み ----------------
+// ---------------- 撮影 ----------------
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 async function countdown(sec) {
   const token = ++S.capturing;
@@ -246,7 +246,7 @@ async function countdown(sec) {
   box.hidden = true;
   return token === S.capturing;
 }
-/** 映像を取り込む（待ち時間の後。ピンぼけ・ブレのチェックは補助の表示の ON / OFF に関わらず行う） */
+/** 映像を撮影する（待ち時間の後。ピンぼけ・ブレのチェックは補助の表示の ON / OFF に関わらず行う） */
 async function capture() {
   for (;;) {
     if (!cam.ready) { toast('カメラの映像がありません'); return null; }
@@ -256,8 +256,8 @@ async function capture() {
     if (val < IM.SHARP_MIN) {
       const r = await choose({
         title: '画像がぼやけています',
-        html: '<p>ピンぼけ、またはブレの可能性があります。端末とヘッドが動いていないこと、ピントが合っていることを確かめてから取り直してください。</p>',
-        choices: [{ value: 'retry', label: '取り直す' }, { value: 'use', label: 'このまま使う' }],
+        html: '<p>ピンぼけ、またはブレの可能性があります。端末とヘッドが動いていないこと、ピントが合っていることを確かめてから撮り直してください。</p>',
+        choices: [{ value: 'retry', label: '撮り直す' }, { value: 'use', label: 'このまま使う' }],
       });
       if (r === 'retry') continue;
       if (r !== 'use') return null;
@@ -371,14 +371,14 @@ function drawLive() {
 }
 
 /**
- * 取り込み画像の座標 → 映像の座標。取り込んだ後にズーム倍率を変えた場合は、倍率の比で映像の中央を基準に拡大・縮小する
+ * 撮影画像の座標 → 映像の座標。撮影した後にズーム倍率を変えた場合は、倍率の比で映像の中央を基準に拡大・縮小する
  * （ズームは映像の中央を基準に拡大するため、比で合わせるとヘッドに重なる）
  */
 function capToFrame(cap, fw, fh) {
   const k = zoomRatio(cap);
   return G.mul(G.T(fw / 2, fh / 2), G.S(k), G.T(-fw / 2, -fh / 2), G.S(fw / cap.w));
 }
-/** 今のズーム倍率 ÷ 取り込んだときのズーム倍率 */
+/** 今のズーム倍率 ÷ 撮影したときのズーム倍率 */
 const zoomRatio = (cap) => (cap.zoom && cam.zoom ? cam.zoom / cap.zoom : 1);
 
 function drawCapEdges(cap, V, fw, alpha) {
@@ -389,7 +389,7 @@ function drawCapEdges(cap, V, fw, alpha) {
   ctx.restore();
 }
 
-/** ミラー：取り込み画像の基準の側を中心線で反転し、反対側の半分にだけ重ねる */
+/** ミラー：撮影画像の基準の側を中心線で反転し、反対側の半分にだけ重ねる */
 function drawMirror(V, fw, fh) {
   const which = S.mirror.which === 'after' && S.sim ? 'after' : 'before';
   const cap = which === 'after' ? S.sim.cap : S.mirrorCap;
@@ -443,7 +443,7 @@ function renderChips() {
     chips.push(`<span class="pill">${S.mirror.which === 'after' && S.sim ? '修正後' : '修正前'}</span>`);
     const mc = S.mirror.which === 'after' && S.sim ? S.sim.cap : S.mirrorCap;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
-      chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で取り込んだ画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（取り直すとはっきりします）</span>`);
+      chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
     }
   }
   if (S.screen === 'sim' && S.sim) {
@@ -473,7 +473,9 @@ function updateBanner() {
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   } else if (S.screen === 'mirror' && S.headMoved && (S.mirrorCap || S.sim)) {
-    t.textContent = 'ヘッドの位置が変わっている場合は取り直してください（表示方法「輪郭のみ」で重なりを確かめられます）';
+    t.textContent = 'ヘッドの位置が変わっている場合は撮り直してください（表示方法「輪郭のみ」で重なりを確かめられます）';
+    // ヘッドが中心線からずれている場合に、すぐ合わせ直せるようにする
+    act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   }
   b.hidden = !show;
@@ -491,7 +493,7 @@ function updateHome() {
   const has = !!S.lastCap;
   $('#btn-edge').disabled = !has;
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
-  $('#edge-hint').textContent = has ? `前回の取り込み画像（${hhmm(S.lastCap.time)}）` : '前回の取り込み画像がありません';
+  $('#edge-hint').textContent = has ? `前回の撮影画像（${hhmm(S.lastCap.time)}）` : '前回の撮影画像がありません';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
@@ -585,16 +587,16 @@ function zoomLive(f, at) {
 $('#btn-face-help').addEventListener('click', () => choose({ title: '合わせ方', html: $('#face-help').innerHTML, cancel: '閉じる' }));
 $('#btn-face-done').addEventListener('click', () => back());
 
-/** 顔位置設定を閉じる前：角度を変えた場合に、既にある取り込み画像に適用するかを選ぶ。false なら閉じない */
+/** 顔位置設定を閉じる前：角度を変えた場合に、既にある撮影画像に適用するかを選ぶ。false なら閉じない */
 async function leaveFace() {
   const a0 = S.face.angle0, a1 = settings.angle;
   if (Math.abs(a0 - a1) < 0.001 || !(S.mirrorCap || S.sim)) return true;
   const r = await choose({
-    title: '取り込み画像にも適用しますか',
-    html: `<p>中心線の角度を <b class="mono">${fmtAngle(a0)} → ${fmtAngle(a1)}</b> に変えました。ミラー・シミュレーションの取り込み画像があります。</p>`,
+    title: '撮影画像にも適用しますか',
+    html: `<p>中心線の角度を <b class="mono">${fmtAngle(a0)} → ${fmtAngle(a1)}</b> に変えました。ミラー・シミュレーションの撮影画像があります。</p>`,
     choices: [
-      { value: 'apply', label: '取り込み画像にも適用する', desc: 'ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。' },
-      { value: 'keep', label: '適用しない', desc: 'ヘッドを付け直した・スタンドを動かした場合。取り込み画像はそのまま使います。取り直しをおすすめします。' },
+      { value: 'apply', label: '撮影画像にも適用する', desc: 'ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。' },
+      { value: 'keep', label: '適用しない', desc: 'ヘッドを付け直した・スタンドを動かした場合。撮影画像はそのまま使います。撮り直しをおすすめします。' },
     ],
     cancel: '顔位置設定に戻る',
   });
@@ -604,7 +606,7 @@ async function leaveFace() {
     if (S.sim) S.sim.setAngle(a1);
   } else {
     S.headMoved = true;
-    toast('取り込み画像はそのままです。ミラーは取り直しをおすすめします');
+    toast('撮影画像はそのままです。ミラーは撮り直しをおすすめします');
   }
   return true;
 }
@@ -639,7 +641,7 @@ function updateMirror() {
     const basisSide = S.mirror.basis === 'left' ? 1 : -1;
     const other = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === -basisSide);
     if (other) msgs.push('基準でない側の修正は表示されません。両側の修正をあわせて見るには、シミュレーション画面を使ってください。');
-    msgs.push(`修正後の画像は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の取り込み画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
+    msgs.push(`修正後の画像は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
     note.innerHTML = msgs.map(esc).join('<br>');
     note.hidden = false;
   } else note.hidden = true;
@@ -661,7 +663,7 @@ $('#btn-retake').addEventListener('click', async () => {
   const cap = await capture();
   if (!cap) return;
   S.mirrorCap = cap; S.headMoved = false;
-  toast('取り直しました');
+  toast('撮り直しました');
   updateMirror();
 });
 $('#btn-m-sim').addEventListener('click', () => openSim());
@@ -684,10 +686,10 @@ async function openSim() {
     const sim = S.sim, nParts = sim.parts.length;
     const r = await choose({
       title: 'シミュレーション',
-      html: `<p>前回のシミュレーション（パーツ ${nParts}つ、${hhmm(sim.cap.time)} に取り込み）があります。</p>`,
+      html: `<p>前回のシミュレーション（パーツ ${nParts}つ、${hhmm(sim.cap.time)} に撮影）があります。</p>`,
       choices: [
-        { value: 'continue', label: '続きから', desc: '前回の取り込み画像と、パーツ移動、取り消しの履歴をそのまま使います。' },
-        { value: 'new', label: '取り直して新しく始める', desc: '今の映像を取り込みます。前回のパーツ移動と履歴は消えます。' },
+        { value: 'continue', label: '続きから', desc: '前回の撮影画像と、パーツ移動、取り消しの履歴をそのまま使います。' },
+        { value: 'new', label: '撮り直して新しく始める', desc: '今の映像を撮影します。前回のパーツ移動と履歴は消えます。' },
       ],
     });
     if (r === 'continue') { go('sim'); return; }
@@ -695,7 +697,7 @@ async function openSim() {
     const ok = await choose({
       title: '前回のシミュレーションを消しますか',
       html: '<p>パーツ移動と、取り消しの履歴が消えます。元に戻せません。</p>',
-      choices: [{ value: 'yes', label: '消して取り直す', danger: true }],
+      choices: [{ value: 'yes', label: '消して撮り直す', danger: true }],
     });
     if (ok !== 'yes') return;
   }

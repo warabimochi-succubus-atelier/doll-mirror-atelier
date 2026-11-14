@@ -353,7 +353,7 @@
         <div class="home-nav">
           <button class="btn nav-main" data-goto="s-count">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M10 6H5v12h5M14 6h5v12h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-            <span class="nav-text"><b>ミラー</b><small>映像を取り込み、左右を反転して重ねて比べる</small></span>
+            <span class="nav-text"><b>ミラー</b><small>映像を撮影し、左右を反転して重ねて比べる</small></span>
           </button>
           <div class="nav-sub">
             <button class="btn" data-goto="s-face">
@@ -362,13 +362,13 @@
             </button>
             <button class="btn" data-goto="s-simstart">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M11 15q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M14 10l2 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <span class="nav-text"><b>シミュレーション</b><small>取り込んでメイクの移動を試す</small></span>
+              <span class="nav-text"><b>シミュレーション</b><small>撮影してメイクの移動を試す</small></span>
             </button>
           </div>
         </div>
         <div class="row" style="margin-top:10px">
           <span class="lbl">輪郭表示</span>
-          <span class="hint" style="margin:0">前回の取り込み画像がありません</span>
+          <span class="hint" style="margin:0">前回の撮影画像がありません</span>
           <button class="btn btn-ghost btn-s ml-auto" disabled>重ねる</button>
         </div>
         <div class="row">
@@ -402,7 +402,7 @@
         <div class="dialog">
           <div class="dlg-body">
             <h2>カメラを使います</h2>
-            <p>このアプリは、スタンドに固定したドールヘッドを背面カメラで映し続けて使います。カメラの映像・取り込んだ画像は端末の外に送らず、保存もしません。</p>
+            <p>このアプリは、スタンドに固定したドールヘッドを背面カメラで映し続けて使います。カメラの映像・撮影した画像は端末の外に送らず、保存もしません。</p>
             <p>次にブラウザから「カメラの使用を許可しますか」と尋ねられたら、<b>許可</b>を選んでください。</p>
             <p class="hint">ホーム画面から起動した場合、起動のたびに尋ねられることがあります。</p>
           </div>
@@ -458,7 +458,7 @@
   <section class="shot" id="s-face-close" data-title="角度の適用">
     <div class="shot-cap">
       <h2><span class="no">4</span>中心線の角度を変えて閉じるとき</h2>
-      <p>取り込み画像がある状態で角度を変えた場合のみ表示。ヘッドを動かしたかどうかで、既存の取り込み画像に角度を適用するか選ぶ。</p>
+      <p>撮影画像がある状態で角度を変えた場合のみ表示。ヘッドを動かしたかどうかで、既存の撮影画像に角度を適用するか選ぶ。</p>
     </div>
     <div class="phone">
       <header class="topbar">
@@ -471,10 +471,10 @@
       <div class="sheet-back">
         <div class="dialog">
           <div class="dlg-body">
-            <h2>取り込み画像にも適用しますか</h2>
-            <p>中心線の角度を <b class="mono">0.0° → +0.4°</b> に変えました。ミラー・シミュレーションの取り込み画像があります。</p>
-            <button class="choice" data-goto="s-home"><b>取り込み画像にも適用する</b><span>ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。</span></button>
-            <button class="choice" data-goto="s-home"><b>適用しない</b><span>ヘッドを付け直した・スタンドを動かした場合。取り込み画像はそのまま使います。取り直しをおすすめします。</span></button>
+            <h2>撮影画像にも適用しますか</h2>
+            <p>中心線の角度を <b class="mono">0.0° → +0.4°</b> に変えました。ミラー・シミュレーションの撮影画像があります。</p>
+            <button class="choice" data-goto="s-home"><b>撮影画像にも適用する</b><span>ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。</span></button>
+            <button class="choice" data-goto="s-home"><b>適用しない</b><span>ヘッドを付け直した・スタンドを動かした場合。撮影画像はそのまま使います。撮り直しをおすすめします。</span></button>
           </div>
           <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost">顔位置設定に戻る</button></div>
         </div>
@@ -482,11 +482,11 @@
     </div>
   </section>
 
-  <!-- ===================== 5. 取り込み（待ち時間） ===================== -->
-  <section class="shot" id="s-count" data-title="取り込み">
+  <!-- ===================== 5. 撮影（待ち時間） ===================== -->
+  <section class="shot" id="s-count" data-title="撮影">
     <div class="shot-cap">
-      <h2><span class="no">5</span>映像の取り込み（待ち時間）</h2>
-      <p>ミラー・シミュレーションの開始時と取り直し時。ボタン操作の揺れを避けるため、待ち時間（初期値 1秒）のカウントの後に1コマを取り込み、ピンぼけ・ブレを確かめる。</p>
+      <h2><span class="no">5</span>映像の撮影（待ち時間）</h2>
+      <p>ミラー・シミュレーションの開始時と撮り直し時。ボタン操作の揺れを避けるため、待ち時間（初期値 1秒）のカウントの後に1コマを撮影し、ピンぼけ・ブレを確かめる。</p>
     </div>
     <div class="phone">
       <header class="topbar">
@@ -501,13 +501,13 @@
         </div>
       </div>
       <div class="panel">
-        <p class="hint" style="margin:0">取り込んだ画像がぼやけていた場合：</p>
+        <p class="hint" style="margin:0">撮影した画像がぼやけていた場合：</p>
         <div class="row" style="margin-top:6px">
           <span class="pill bad" style="font-size:12px">画像がぼやけています</span>
-          <button class="btn btn-primary btn-s ml-auto">取り直す</button>
+          <button class="btn btn-primary btn-s ml-auto">撮り直す</button>
           <button class="btn btn-ghost btn-s" data-goto="s-mirror">このまま使う</button>
         </div>
-        <button class="btn btn-block" style="margin-top:10px" data-goto="s-mirror">（モック）取り込み完了 → ミラーへ</button>
+        <button class="btn btn-block" style="margin-top:10px" data-goto="s-mirror">（モック）撮影完了 → ミラーへ</button>
       </div>
     </div>
   </section>
@@ -516,13 +516,13 @@
   <section class="shot" id="s-mirror" data-title="ミラー">
     <div class="shot-cap">
       <h2><span class="no">6</span>ミラー</h2>
-      <p>ライブ映像の上に、取り込み画像の基準の側を中心線で反転して、反対側の半分にだけ重ねる。透明度を上げると下のライブ映像が透け、ガイドにして描ける。2本指で広げると、ライブ映像と重ねた画像が一緒に拡大される（顔位置設定と同じ）。取り込み後にズーム倍率を変えた場合は、取り込み画像を倍率の比で拡大・縮小して重ねる。</p>
+      <p>ライブ映像の上に、撮影画像の基準の側を中心線で反転して、反対側の半分にだけ重ねる。透明度を上げると下のライブ映像が透け、ガイドにして描ける。2本指で広げると、ライブ映像と重ねた画像が一緒に拡大される（顔位置設定と同じ）。撮影後にズーム倍率を変えた場合は、撮影画像を倍率の比で拡大・縮小して重ねる。</p>
     </div>
     <div class="phone" id="mirror-phone">
       <header class="topbar">
         <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
         <div class="bar-title">ミラー</div>
-        <button class="btn btn-ghost btn-s" data-goto="s-face">顔位置設定</button>
+        <button class="btn btn-ghost btn-s" data-goto="s-simstart">シミュレーション</button>
       </header>
       <div class="stage">
         <div class="ov zoom" role="group" aria-label="倍率"><button class="zoom-cur mono">1.0×</button></div>
@@ -542,7 +542,7 @@
           <span class="pill">修正前</span>
         </div>
         <div class="ov banner" style="bottom:10px">
-          <span class="grow">ヘッドの位置が変わっている場合は取り直してください（「輪郭のみ」で重なりを確かめられます）</span>
+          <span class="grow">ヘッドの位置が変わっている場合は撮り直してください（「輪郭のみ」で重なりを確かめられます）</span>
           <button class="back" style="font-size:16px" aria-label="閉じる">×</button>
         </div>
       </div>
@@ -590,8 +590,7 @@
           </div>
         </div>
         <div class="row" style="margin-top:6px">
-          <button class="btn grow" data-goto="s-count">取り直し</button>
-          <button class="btn btn-primary grow" data-goto="s-simstart">シミュレーションへ</button>
+          <button class="btn grow" data-goto="s-count">撮り直し</button>
         </div>
       </div>
     </div>
@@ -601,13 +600,13 @@
   <section class="shot" id="s-mirror-after" data-title="ミラー（修正後）">
     <div class="shot-cap">
       <h2><span class="no">7</span>ミラー（修正後・輪郭のみ）</h2>
-      <p>シミュレーションから移った場合は修正後を初期表示。基準でない側の修正は表示されないこと、取り込み後のメイクの進み具合は反映されないことを表示する。</p>
+      <p>シミュレーションから移った場合は修正後を初期表示。基準でない側の修正は表示されないこと、撮影後のメイクの進み具合は反映されないことを表示する。</p>
     </div>
     <div class="phone">
       <header class="topbar">
         <button class="back" data-goto="s-sim" aria-label="戻る">‹</button>
         <div class="bar-title">ミラー</div>
-        <button class="btn btn-ghost btn-s">顔位置設定</button>
+        <button class="btn btn-ghost btn-s" data-goto="s-sim">シミュレーション</button>
       </header>
       <div class="stage">
         <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
@@ -644,10 +643,9 @@
             <button class="swatch" style="background:#fff200" aria-label="黄"></button>
           </div>
         </div>
-        <p class="hint">修正後の画像はシミュレーション開始時（14:32）の取り込み画像がもとです。その後に進めたメイク・削りは反映されません。</p>
+        <p class="hint">修正後の画像はシミュレーション開始時（14:32）の撮影画像がもとです。その後に進めたメイク・削りは反映されません。</p>
         <div class="row" style="margin-top:8px">
-          <button class="btn grow">取り直し</button>
-          <button class="btn btn-primary grow" data-goto="s-sim">シミュレーションへ</button>
+          <button class="btn grow">撮り直し</button>
         </div>
       </div>
     </div>
@@ -657,7 +655,7 @@
   <section class="shot" id="s-simstart" data-title="シミュレーション開始">
     <div class="shot-cap">
       <h2><span class="no">8</span>シミュレーションの開始（続きがあるとき）</h2>
-      <p>アプリを開いている間にシミュレーションを行っていた場合のみ表示。「取り直して新しく始める」はパーツ移動と履歴を破棄するため、確認を挟む。</p>
+      <p>アプリを開いている間にシミュレーションを行っていた場合のみ表示。「撮り直して新しく始める」はパーツ移動と履歴を破棄するため、確認を挟む。</p>
     </div>
     <div class="phone">
       <header class="topbar">
@@ -673,9 +671,9 @@
         <div class="dialog">
           <div class="dlg-body">
             <h2>シミュレーション</h2>
-            <p>前回のシミュレーション（パーツ 3つ、14:32 に取り込み）があります。</p>
-            <button class="choice" data-goto="s-sim"><b>続きから</b><span>前回の取り込み画像と、パーツ移動、取り消しの履歴をそのまま使います。</span></button>
-            <button class="choice" data-goto="s-count"><b>取り直して新しく始める</b><span>今の映像を取り込みます。前回のパーツ移動と履歴は消えます。</span></button>
+            <p>前回のシミュレーション（パーツ 3つ、14:32 に撮影）があります。</p>
+            <button class="choice" data-goto="s-sim"><b>続きから</b><span>前回の撮影画像と、パーツ移動、取り消しの履歴をそのまま使います。</span></button>
+            <button class="choice" data-goto="s-count"><b>撮り直して新しく始める</b><span>今の映像を撮影します。前回のパーツ移動と履歴は消えます。</span></button>
           </div>
           <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost" data-goto="s-home">キャンセル</button></div>
         </div>
@@ -687,7 +685,7 @@
   <section class="shot" id="s-sim" data-title="パーツ移動">
     <div class="shot-cap">
       <h2><span class="no">9</span>シミュレーション：パーツ移動</h2>
-      <p>取り込み画像の上で囲んでパーツを選び、移動・回転・拡大縮小・左右コピーする。パーツは一覧で切り替え・表示／非表示。「修正前」は押している間だけ取り込み画像を表示（押してみてください）。</p>
+      <p>撮影画像の上で囲んでパーツを選び、移動・回転・拡大縮小・左右コピーする。パーツは一覧で切り替え・表示／非表示。「修正前」は押している間だけ撮影画像を表示（押してみてください）。</p>
     </div>
     <div class="phone sim-phone">
       <header class="topbar">
@@ -812,15 +810,15 @@
           <label class="set"><span class="grow">フレームガイド<small>ヘッド輪郭の目安の楕円</small></span><input type="checkbox" class="switch" checked></label>
           <div class="set"><span class="grow">楕円の大きさ</span><input type="range" value="55" style="width:110px" aria-label="楕円の大きさ"></div>
           <label class="set"><span class="grow">照明の左右差チェック<small>額の明るさで判定（目安）</small></span><input type="checkbox" class="switch" checked></label>
-          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>取り込み時のチェックは常に行います</small></span><input type="checkbox" class="switch" checked></label>
+          <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>撮影時のチェックは常に行います</small></span><input type="checkbox" class="switch" checked></label>
           <label class="set"><span class="grow">中心線の表示</span><input type="checkbox" class="switch" checked></label>
-          <label class="set"><span class="grow">前回の取り込み画像の輪郭表示</span><input type="checkbox" class="switch"></label>
+          <label class="set"><span class="grow">前回の撮影画像の輪郭表示</span><input type="checkbox" class="switch"></label>
         </div>
         <div class="card">
-          <h2>カメラと取り込み</h2>
+          <h2>カメラと撮影</h2>
           <div class="set"><span class="grow">ズーム倍率<small>このブラウザはデジタルズーム（画質が下がります）</small></span>
             <select aria-label="ズーム倍率"><option>1×</option><option selected>2×</option><option>3×</option></select></div>
-          <div class="set"><span class="grow">取り込み時の待ち時間</span>
+          <div class="set"><span class="grow">撮影時の待ち時間</span>
             <select aria-label="待ち時間"><option>なし</option><option selected>1秒</option><option>2秒</option><option>3秒</option></select></div>
         </div>
         <div class="card">
@@ -838,7 +836,7 @@
         <div class="card">
           <h2>このアプリについて <span class="badge" data-app-version></span></h2>
           <ul class="plain">
-            <li>カメラの映像と取り込み画像は端末の外へ送らず、保存もしません。作業内容はアプリを開いている間だけ保持します。</li>
+            <li>カメラの映像と撮影画像は端末の外へ送らず、保存もしません。作業内容はアプリを開いている間だけ保持します。</li>
             <li>シミュレーションは当たり確認用の目安です。</li>
             <li>作者・ライセンス・マニュアルへのリンクは、画面右上の ⓘ から開けます。</li>
           </ul>

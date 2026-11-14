@@ -10,8 +10,8 @@ export const DEFAULTS = {
   // カメラ画面の補助の ON / OFF
   assist: { level: true, frame: true, light: true, sharp: true, center: true, edge: false },
   frame: 0.6,      // フレームガイドの楕円の高さ（映像の高さに対する比率）
-  delay: 1,        // 取り込み時の待ち時間（秒）
-  edgeAlpha: 40,   // 前回の取り込み画像の輪郭表示の透明度（%。0：不透明、100：完全に透明）
+  delay: 1,        // 撮影時の待ち時間（秒）
+  edgeAlpha: 40,   // 前回の撮影画像の輪郭表示の透明度（%。0：不透明、100：完全に透明）
   mirrorAlpha: 0,  // ミラーの透明度（%）
   mirrorMode: 'img', // ミラーの表示方法：'img' 画像 / 'edge' 輪郭のみ
   lineColor: '#5cf2ff', // 輪郭の線の色

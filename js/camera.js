@@ -1,10 +1,10 @@
-// カメラ映像：背面カメラの取得・ズーム・1コマの取り込み・画面の消灯防止
+// カメラ映像：背面カメラの取得・ズーム・1コマの撮影・画面の消灯防止
 // 仕様書「入力（カメラ映像）」「ズーム」を参照
 
 import { clamp } from './geom.js';
 
 const DIGITAL_MAX = 4;    // デジタルズームの上限（これ以上は画質が下がりすぎる）
-const WORK_MAX = 4096;    // 取り込み画像の長辺の上限（端末の Canvas 上限を超えないため）
+const WORK_MAX = 4096;    // 撮影画像の長辺の上限（端末の Canvas 上限を超えないため）
 const DEMO = new URLSearchParams(location.search).has('demo');
 
 export const cam = {
@@ -109,7 +109,7 @@ export const cam = {
     return { sx: (vw - sw) / 2, sy: (vh - sh) / 2, sw, sh };
   },
 
-  /** 表示中の映像の1コマを静止画として取り込む（長辺 4096px 以下） */
+  /** 表示中の映像の1コマを静止画として撮影する（長辺 4096px 以下） */
   grab() {
     const c = this.crop();
     const s = Math.min(1, WORK_MAX / Math.max(c.sw, c.sh));
