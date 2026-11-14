@@ -180,16 +180,24 @@
           </div>
           <p class="hint" style="margin-top:0">0%：完全に対称に見え、左右差を確かめられます。透明度を上げると下のライブ映像が透け、反対側を描くガイドになります。</p>
           <p class="hint warn" id="m-after-note" hidden></p>
-          <details class="fold">
-            <summary>位置の微調整</summary>
-            <div class="row wrap" style="gap:4px">
-              <div class="fine" id="m-adj">
-                <button class="btn" data-adj="x-">←</button><button class="btn" data-adj="x+">→</button><button class="btn" data-adj="y-">↑</button><button class="btn" data-adj="y+">↓</button>
-                <button class="btn" data-adj="s-">縮小</button><button class="btn" data-adj="s+">拡大</button><button class="btn" data-adj="r-">⟲</button><button class="btn" data-adj="r+">⟳</button>
-              </div>
-              <button class="btn btn-ghost btn-s" id="m-adj0">元に戻す</button>
+          <!-- 位置の微調整：折りたたむと開けることに気付きにくいため、常に表示する -->
+          <div class="row">
+            <span class="lbl">位置の微調整</span>
+            <span class="hint grow" style="margin:0">重なりのわずかなずれを直す</span>
+            <button class="btn btn-ghost btn-s" id="m-adj0">元に戻す</button>
+          </div>
+          <!-- シミュレーションのパーツの操作と同じ並び（左に上下左右の矢印、右に回転・大きさ） -->
+          <div class="row" id="m-adj" style="align-items:flex-start">
+            <div class="pad" aria-label="移動">
+              <span></span><button data-adj="y-" aria-label="上へ">↑</button><span></span>
+              <button data-adj="x-" aria-label="左へ">←</button><span></span><button data-adj="x+" aria-label="右へ">→</button>
+              <span></span><button data-adj="y+" aria-label="下へ">↓</button><span></span>
             </div>
-          </details>
+            <div class="grow" style="display:grid;gap:5px">
+              <div class="row"><span class="lbl short">回転</span><div class="fine"><button class="btn" data-adj="r-" aria-label="左に回す">⟲</button><button class="btn" data-adj="r+" aria-label="右に回す">⟳</button></div></div>
+              <div class="row"><span class="lbl short">大きさ</span><div class="fine"><button class="btn" data-adj="s-" aria-label="小さく">−</button><button class="btn" data-adj="s+" aria-label="大きく">＋</button></div></div>
+            </div>
+          </div>
           <div class="row" style="margin-top:6px">
             <button class="btn grow" id="btn-retake">取り直し</button>
             <button class="btn btn-primary grow" id="btn-m-sim">シミュレーションへ</button>
@@ -228,11 +236,9 @@
               <span class="lbl" id="origin-lbl">元の位置</span>
               <div class="seg" id="origin"><button data-v="keep">残す</button><button data-v="fade">薄くする</button><button data-v="erase">消す</button></div>
             </div>
-            <details class="fold">
-              <summary>境界のぼかし・抽出の強さ</summary>
-              <div class="row"><span class="lbl">ぼかし</span><input type="range" min="0" max="40" id="feather" aria-label="境界のぼかし幅"></div>
-              <div class="row"><span class="lbl">抽出の強さ</span><input type="range" min="0" max="100" id="strength" aria-label="抽出の強さ"></div>
-            </details>
+            <!-- 折りたたむと開けることに気付きにくいため、常に表示する -->
+            <div class="row"><span class="lbl">境界のぼかし</span><input type="range" min="0" max="40" id="feather" aria-label="境界のぼかし幅"></div>
+            <div class="row"><span class="lbl">抽出の強さ</span><input type="range" min="0" max="100" id="strength" aria-label="抽出の強さ"></div>
             <div class="row" style="margin-top:6px">
               <button class="btn grow wrap-text" id="btn-copy"></button>
               <button class="btn btn-ghost btn-s" id="btn-relasso" title="選択範囲を囲み直します">囲み直す</button>

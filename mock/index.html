@@ -148,9 +148,6 @@
     .divider { height: 1px; background: var(--line); margin: 10px -12px; }
     .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
     .swatch.on { box-shadow: 0 0 0 2px var(--accent); }
-    details.fold > summary { cursor: pointer; font-size: 12px; color: var(--ink-2); list-style: none; padding: 4px 0; }
-    details.fold > summary::before { content: "▸ "; }
-    details.fold[open] > summary::before { content: "▾ "; }
 
     /* ---- シミュレーション ---- */
     .simbar { flex: none; display: flex; gap: 6px; align-items: center; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
@@ -576,14 +573,22 @@
           <span class="val mono" id="m-alpha-v">0%</span>
         </div>
         <p class="hint" style="margin-top:0">0%：完全対称で左右差を確認 ／ 上げる：ライブ映像が透けて、反対側を描くガイドに</p>
-        <details class="fold">
-          <summary>位置の微調整</summary>
-          <div class="row wrap" style="gap:4px">
-            <div class="fine"><button class="btn">←</button><button class="btn">→</button><button class="btn">↑</button><button class="btn">↓</button></div>
-            <div class="fine"><button class="btn">縮小</button><button class="btn">拡大</button><button class="btn">⟲</button><button class="btn">⟳</button></div>
-            <button class="btn btn-ghost btn-s">元に戻す</button>
+        <div class="row">
+          <span class="lbl">位置の微調整</span>
+          <span class="hint grow" style="margin:0">重なりのわずかなずれを直す</span>
+          <button class="btn btn-ghost btn-s">元に戻す</button>
+        </div>
+        <div class="row" style="align-items:flex-start">
+          <div class="pad">
+            <span></span><button>↑</button><span></span>
+            <button>←</button><span></span><button>→</button>
+            <span></span><button>↓</button><span></span>
           </div>
-        </details>
+          <div class="grow" style="display:grid;gap:5px">
+            <div class="row"><span class="lbl" style="min-width:34px">回転</span><div class="fine"><button class="btn">⟲</button><button class="btn">⟳</button></div></div>
+            <div class="row"><span class="lbl" style="min-width:34px">大きさ</span><div class="fine"><button class="btn">−</button><button class="btn">＋</button></div></div>
+          </div>
+        </div>
         <div class="row" style="margin-top:6px">
           <button class="btn grow" data-goto="s-count">取り直し</button>
           <button class="btn btn-primary grow" data-goto="s-simstart">シミュレーションへ</button>
@@ -747,11 +752,8 @@
           <span class="lbl">元の位置</span>
           <div class="seg"><button>残す</button><button class="on">薄くする</button><button>消す</button></div>
         </div>
-        <details class="fold">
-          <summary>境界のぼかし・抽出の強さ</summary>
-          <div class="row"><span class="lbl">ぼかし</span><input type="range" value="40" aria-label="ぼかし幅"></div>
-          <div class="row"><span class="lbl">抽出の強さ</span><input type="range" value="60" aria-label="抽出の強さ"></div>
-        </details>
+        <div class="row"><span class="lbl">境界のぼかし</span><input type="range" value="40" aria-label="ぼかし幅"></div>
+        <div class="row"><span class="lbl">抽出の強さ</span><input type="range" value="60" aria-label="抽出の強さ"></div>
         <div class="row" style="margin-top:6px">
           <button class="btn grow">右眉へ左右コピー</button>
           <button class="btn btn-danger btn-s">削除</button>
