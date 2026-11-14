@@ -476,6 +476,8 @@ function renderChips() {
   if (S.screen === 'home') {
     const a = settings.assist, l = S.checks.light;
     if (S.flip) chips.push('<span class="pill bad">左右反転中（画面の左右がふだんと逆です）</span>');
+    // 重ねたまま忘れないよう、重ねている間は何をする表示かを出す
+    if (a.edge && S.lastCap) chips.push('<span class="pill">輪郭にヘッドを合わせてください</span>');
     // 左右反転中は、表示の左右が入れ替わるため、暗い側も表示の上の位置で示す
     // l > 0：画面右側が明るい（画面左側が暗い）
     if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${(l > 0) !== S.flip ? '左' : '右'}側が暗めです</span>`);
@@ -537,7 +539,9 @@ function updateHome() {
   const has = !!S.lastCap;
   $('#btn-edge').disabled = !has;
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
-  $('#edge-hint').textContent = has ? `前回の撮影画像（${hhmm(S.lastCap.time)}）` : '前回の撮影画像がありません';
+  $('#edge-hint').textContent = has
+    ? `ヘッドを動かした後、${hhmm(S.lastCap.time)} に撮影したときの輪郭に合わせて戻します`
+    : 'ミラーかシミュレーションで撮影すると使えます';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
