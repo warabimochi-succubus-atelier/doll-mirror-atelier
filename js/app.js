@@ -590,27 +590,18 @@ function zoomLive(f, at) {
 $('#btn-face-help').addEventListener('click', () => choose({ title: '合わせ方', html: $('#face-help').innerHTML, cancel: '閉じる' }));
 $('#btn-face-done').addEventListener('click', () => back());
 
-/** 顔位置設定を閉じる前：角度を変えた場合に、既にある撮影画像に適用するかを選ぶ。false なら閉じない */
+/**
+ * 顔位置設定を閉じる前：角度を変えた場合は、既にある撮影画像にもいつも適用する（ミラーの反転・左右コピーの位置を計算し直す）。
+ * ヘッドを動かしたために角度を直した場合に備え、ミラーを開いたときに撮り直しを案内する。
+ * 適用するかを選ぶ確認は出さない（理由を思い出して選ぶのが難しく、角度の差は小さいため）。false なら閉じない
+ */
 async function leaveFace() {
   const a0 = S.face.angle0, a1 = settings.angle;
   if (Math.abs(a0 - a1) < 0.001 || !(S.mirrorCap || S.sim)) return true;
-  const r = await choose({
-    title: '撮影画像にも適用しますか',
-    html: `<p>中心線の角度を <b class="mono">${fmtAngle(a0)} → ${fmtAngle(a1)}</b> に変えました。ミラー・シミュレーションの撮影画像があります。</p>`,
-    choices: [
-      { value: 'apply', label: '撮影画像にも適用する', desc: 'ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。' },
-      { value: 'keep', label: '適用しない', desc: 'ヘッドを付け直した・スタンドを動かした場合。撮影画像はそのまま使います。撮り直しをおすすめします。' },
-    ],
-    cancel: '顔位置設定に戻る',
-  });
-  if (!r) return false;
-  if (r === 'apply') {
-    if (S.mirrorCap) S.mirrorCap.angle = a1;
-    if (S.sim) S.sim.setAngle(a1);
-  } else {
-    S.headMoved = true;
-    toast('撮影画像はそのままです。ミラーは撮り直しをおすすめします');
-  }
+  if (S.mirrorCap) S.mirrorCap.angle = a1;
+  if (S.sim) S.sim.setAngle(a1);
+  S.headMoved = true;
+  toast('中心線の角度を、撮影画像にも当てました');
   return true;
 }
 

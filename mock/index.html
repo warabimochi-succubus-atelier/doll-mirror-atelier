@@ -423,7 +423,7 @@
     </div>
     <div class="phone">
       <header class="topbar">
-        <button class="back" data-goto="s-face-close" aria-label="戻る">‹</button>
+        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
         <div class="bar-title">顔位置設定</div>
         <button class="btn btn-ghost btn-s">合わせ方</button>
       </header>
@@ -449,43 +449,15 @@
           <span class="hint" style="margin:0">±10° まで</span>
         </div>
         <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します。右の倍率の表示をタップして候補から選ぶこともできます。</p>
-        <button class="btn btn-primary btn-block" data-goto="s-face-close" style="margin-top:6px">完了</button>
+        <button class="btn btn-primary btn-block" data-goto="s-home" style="margin-top:6px">完了</button>
       </div>
     </div>
   </section>
 
-  <!-- ===================== 4. 顔位置設定を閉じる（角度の適用） ===================== -->
-  <section class="shot" id="s-face-close" data-title="角度の適用">
-    <div class="shot-cap">
-      <h2><span class="no">4</span>中心線の角度を変えて閉じるとき</h2>
-      <p>撮影画像がある状態で角度を変えた場合のみ表示。ヘッドを動かしたかどうかで、既存の撮影画像に角度を適用するか選ぶ。</p>
-    </div>
-    <div class="phone">
-      <header class="topbar">
-        <button class="back" aria-label="戻る">‹</button>
-        <div class="bar-title">顔位置設定</div>
-      </header>
-      <div class="stage">
-        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/><use href="#guides"/></svg>
-      </div>
-      <div class="sheet-back">
-        <div class="dialog">
-          <div class="dlg-body">
-            <h2>撮影画像にも適用しますか</h2>
-            <p>中心線の角度を <b class="mono">0.0° → +0.4°</b> に変えました。ミラー・シミュレーションの撮影画像があります。</p>
-            <button class="choice" data-goto="s-home"><b>撮影画像にも適用する</b><span>ヘッドを動かさず、角度の合わせ方だけを直した場合。ミラーの反転と左右コピーを計算し直します（操作の履歴は残ります）。</span></button>
-            <button class="choice" data-goto="s-home"><b>適用しない</b><span>ヘッドを付け直した・スタンドを動かした場合。撮影画像はそのまま使います。撮り直しをおすすめします。</span></button>
-          </div>
-          <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost">顔位置設定に戻る</button></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== 5. 撮影（待ち時間） ===================== -->
+  <!-- ===================== 4. 撮影（待ち時間） ===================== -->
   <section class="shot" id="s-count" data-title="撮影">
     <div class="shot-cap">
-      <h2><span class="no">5</span>映像の撮影（待ち時間）</h2>
+      <h2><span class="no">4</span>映像の撮影（待ち時間）</h2>
       <p>ミラー・シミュレーションの開始時と撮り直し時。ボタン操作の揺れを避けるため、待ち時間（初期値 1秒）のカウントの後に1コマを撮影し、ピンぼけ・ブレを確かめる。</p>
     </div>
     <div class="phone">
@@ -512,10 +484,10 @@
     </div>
   </section>
 
-  <!-- ===================== 6. ミラー ===================== -->
+  <!-- ===================== 5. ミラー ===================== -->
   <section class="shot" id="s-mirror" data-title="ミラー">
     <div class="shot-cap">
-      <h2><span class="no">6</span>ミラー</h2>
+      <h2><span class="no">5</span>ミラー</h2>
       <p>ライブ映像の上に、撮影画像の基準の側を中心線で反転して、反対側の半分にだけ重ねる。透明度を上げると下のライブ映像が透け、ガイドにして描ける。2本指で広げると、ライブ映像と重ねた画像が一緒に拡大される（顔位置設定と同じ）。撮影後にズーム倍率を変えた場合は、撮影画像を倍率の比で拡大・縮小して重ねる。</p>
     </div>
     <div class="phone" id="mirror-phone">
@@ -596,10 +568,10 @@
     </div>
   </section>
 
-  <!-- ===================== 7. ミラー（修正後） ===================== -->
+  <!-- ===================== 6. ミラー（修正後） ===================== -->
   <section class="shot" id="s-mirror-after" data-title="ミラー（修正後）">
     <div class="shot-cap">
-      <h2><span class="no">7</span>ミラー（修正後・輪郭のみ）</h2>
+      <h2><span class="no">6</span>ミラー（修正後・輪郭のみ）</h2>
       <p>シミュレーションから移った場合は修正後を初期表示。基準でない側の修正は表示されないこと、撮影後のメイクの進み具合は反映されないことを表示する。</p>
     </div>
     <div class="phone">
@@ -651,10 +623,10 @@
     </div>
   </section>
 
-  <!-- ===================== 8. シミュレーション開始 ===================== -->
+  <!-- ===================== 7. シミュレーション開始 ===================== -->
   <section class="shot" id="s-simstart" data-title="シミュレーション開始">
     <div class="shot-cap">
-      <h2><span class="no">8</span>シミュレーションの開始（続きがあるとき）</h2>
+      <h2><span class="no">7</span>シミュレーションの開始（続きがあるとき）</h2>
       <p>アプリを開いている間にシミュレーションを行っていた場合のみ表示。「撮り直して新しく始める」はパーツ移動と履歴を破棄するため、確認を挟む。</p>
     </div>
     <div class="phone">
@@ -681,10 +653,10 @@
     </div>
   </section>
 
-  <!-- ===================== 9. シミュレーション：パーツ移動 ===================== -->
+  <!-- ===================== 8. シミュレーション：パーツ移動 ===================== -->
   <section class="shot" id="s-sim" data-title="パーツ移動">
     <div class="shot-cap">
-      <h2><span class="no">9</span>シミュレーション：パーツ移動</h2>
+      <h2><span class="no">8</span>シミュレーション：パーツ移動</h2>
       <p>撮影画像の上で囲んでパーツを選び、移動・回転・拡大縮小・左右コピーする。パーツは一覧で切り替え・表示／非表示。「修正前」は押している間だけ撮影画像を表示（押してみてください）。</p>
     </div>
     <div class="phone sim-phone">
@@ -762,10 +734,10 @@
     </div>
   </section>
 
-  <!-- ===================== 10. 左右コピーの確認 ===================== -->
+  <!-- ===================== 9. 左右コピーの確認 ===================== -->
   <section class="shot" id="s-copy" data-title="左右コピー">
     <div class="shot-cap">
-      <h2><span class="no">10</span>左右コピー（同じ名前のパーツがあるとき）</h2>
+      <h2><span class="no">9</span>左右コピー（同じ名前のパーツがあるとき）</h2>
       <p>コピー先と同じ名前のパーツが既にある場合に表示。コピー先の範囲は中心線で反転した位置に自動で設定し、後から囲み直せる。</p>
     </div>
     <div class="phone">
@@ -789,10 +761,10 @@
     </div>
   </section>
 
-  <!-- ===================== 11. 設定 ===================== -->
+  <!-- ===================== 10. 設定 ===================== -->
   <section class="shot" id="s-settings" data-title="設定">
     <div class="shot-cap">
-      <h2><span class="no">11</span>設定</h2>
+      <h2><span class="no">10</span>設定</h2>
       <p>アプリの設定（アプリを閉じても保持）と設置方法の案内。「このアプリについて」の版の表示は参考 PWA と同じ形。</p>
     </div>
     <div class="phone">
@@ -834,10 +806,10 @@
     </div>
   </section>
 
-  <!-- ===================== 12. 設置ガイド ===================== -->
+  <!-- ===================== 11. 設置ガイド ===================== -->
   <section class="shot" id="s-setup" data-title="設置ガイド">
     <div class="shot-cap">
-      <h2><span class="no">12</span>設置ガイド</h2>
+      <h2><span class="no">11</span>設置ガイド</h2>
       <p>ヘッド・端末・照明の配置例を図で案内する。カメラ画面と設定から開ける。</p>
     </div>
     <div class="phone">
@@ -880,10 +852,10 @@
     </div>
   </section>
 
-  <!-- ===================== 13. このアプリについて ===================== -->
+  <!-- ===================== 12. このアプリについて ===================== -->
   <section class="shot" id="s-about" data-title="このアプリについて">
     <div class="shot-cap">
-      <h2><span class="no">13</span>このアプリについて</h2>
+      <h2><span class="no">12</span>このアプリについて</h2>
       <p>ヘッダーの ⓘ から開く（参考 PWA と同じ構成：アイコン・タイトル・版・説明・作者・リンク）。ⓘ を押すと実際のダイアログも開きます。</p>
     </div>
     <div class="phone">
