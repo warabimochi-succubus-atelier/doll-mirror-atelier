@@ -117,9 +117,16 @@ button, select, input[type="range"], label { touch-action: manipulation; }
   font-size: 12px; display: flex; gap: 8px; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.2);
 }
 .banner .x { border: 0; background: none; font-size: 18px; line-height: 1; color: #7a6a6f; cursor: pointer; padding: 0 2px; }
-.count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: rgba(0,0,0,.08); }
-.count .num { width: 120px; height: 120px; border-radius: 50%; background: rgba(20,14,16,.55); color: #fff; font-size: 64px; font-weight: 700; display: grid; place-items: center; border: 3px solid rgba(255,255,255,.8); }
-.count p { position: absolute; bottom: 24px; margin: 0; }
+.count { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.12); }
+.count-box {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 300px; padding: 14px 20px 16px;
+  border-radius: 18px; background: rgba(20,14,16,.68); color: #fff; text-align: center;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.count-title { margin: 0; font-size: 15px; font-weight: 700; }
+.count .num { display: flex; align-items: baseline; gap: 4px; font-size: 64px; font-weight: 700; line-height: 1; }
+.count .num small { font-size: 18px; }
+.count-note { margin: 0; font-size: 12px; line-height: 1.6; color: #e9dde0; }
 .cam-msg { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 24px; color: #f1e8ea; text-align: center; font-size: 13px; background: #1d181a; }
 .cam-msg .box { max-width: 360px; }
 .cam-msg h2 { justify-content: center; margin-bottom: 8px; }

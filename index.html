@@ -73,7 +73,14 @@
           <span id="banner-act"></span>
           <button class="x" id="banner-x" aria-label="閉じる">×</button>
         </div>
-        <div class="count" id="count" hidden><div class="num mono" id="count-num"></div><p><span class="pill">端末に触れずにお待ちください</span></p></div>
+        <!-- 待ち時間のカウント。数字だけでは何のカウントか伝わりにくいため、「撮影まで」と待つ理由を添える -->
+        <div class="count" id="count" hidden role="status">
+          <div class="count-box">
+            <p class="count-title">撮影まで</p>
+            <div class="num"><span class="mono" id="count-num"></span><small>秒</small></div>
+            <p class="count-note">揺れが収まるのを待っています。<br>端末に触れずにお待ちください</p>
+          </div>
+        </div>
         <div class="cam-msg" id="cam-msg" hidden></div>
       </div>
 
