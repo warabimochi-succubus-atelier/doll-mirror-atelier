@@ -21,7 +21,8 @@ const S = {
   sim: null,         // 仮置き
   lastCap: null,     // 前回の撮影画像（輪郭表示用。ミラー・仮置きのどちらかと共用）
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで、顔位置設定で元の位置に戻すよう案内する）
-  startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
+  startupNote: true, // 起動時の「ヘッドを中心線に合わせて撮影してください」
+  resumeNote: false, // アプリに戻ったときの、元の位置を確かめる案内（ホーム）
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。ボタンを押している間だけ。左右の取り違えを防ぐため）
   // which：表示する画像。ライブから始める（開くたびに撮影して待たせない。止めて見たいときに撮影する）
   mirror: { basis: 'left', which: 'live', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
@@ -62,7 +63,7 @@ function show(s) {
   if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら撮影をやめる
   S.dirty = true;
   S.mode = null;
-  if (s === 'face') { S.face.angle0 = settings.angle; S.startupNote = false; updateFace(); }
+  if (s === 'face') { S.face.angle0 = settings.angle; S.startupNote = false; S.resumeNote = false; updateFace(); }
   zoomOpen = false;
   if (s === 'mirror') updateMirror();
   if (s === 'sim') { S.dirty = true; updateSimPanel(); }
@@ -159,7 +160,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     cam.stop();
   } else if (settings.camIntroDone) {
-    if (S.mirrorCap || S.sim) S.headMoved = true;
+    // 撮影画像がある場合、離れている間にヘッドが動いたかもしれない：ミラーとホームで、元の位置を確かめるよう案内する
+    if (S.mirrorCap || S.sim) { S.headMoved = true; S.resumeNote = true; }
     startCamera().then(updateBanner);
   }
 });
@@ -281,6 +283,13 @@ async function countdown(sec) {
   box.hidden = true;
   return token === S.capturing;
 }
+// 待ち時間の間に映像をタップしたら、撮影を取りやめる（画面に触れると端末が揺れるため、そのまま撮らない）。
+// 映像の操作（ピンチ等）には渡さない
+$('#count').addEventListener('pointerdown', (e) => {
+  e.stopPropagation(); e.preventDefault();
+  S.capturing++; $('#count').hidden = true;
+  toast('撮影を取りやめました');
+});
 /** 映像を撮影する（待ち時間の後。ピンぼけ・ブレのチェックは補助の表示の ON / OFF に関わらず行う） */
 async function capture() {
   for (;;) {
@@ -535,7 +544,12 @@ function updateBanner() {
   act.innerHTML = '';
   let show = false;
   if (S.screen === 'home' && S.startupNote && cam.ready) {
-    t.textContent = 'ヘッドが中心線に合っているか確認してください';
+    // 顔位置設定の「撮影して完了」が、元の位置・ミラーの撮影画像・仮置きの出発点になるため、撮影まで案内する
+    t.textContent = 'ヘッドを中心線に合わせて撮影してください';
+    act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
+    show = true;
+  } else if (S.screen === 'home' && S.resumeNote && cam.ready && (S.mirrorCap || S.sim)) {
+    t.textContent = 'アプリに戻りました。ヘッドが動いていないか、顔位置設定の「元の位置」で確かめてください';
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   } else if (S.screen === 'mirror' && S.headMoved && mirrorWhich() !== 'live' && (S.mirrorCap || S.sim)) {
@@ -547,7 +561,7 @@ function updateBanner() {
   b.hidden = !show;
 }
 $('#banner-x').addEventListener('click', () => {
-  if (S.screen === 'home') S.startupNote = false;
+  if (S.screen === 'home') { S.startupNote = false; S.resumeNote = false; }
   if (S.screen === 'mirror') S.headMoved = false;
   updateBanner();
 });
@@ -766,7 +780,9 @@ $('#btn-shot').addEventListener('click', async () => {
   toast('撮影しました');
   updateMirror();
 });
-$('#btn-m-sim').addEventListener('click', () => openSim());
+// ミラーのヘッダーの「仮置き」：仮置きがあれば、選ばずにそのまま戻る（仮置き ⇄ ミラーの往復で毎回選ばせない）。
+// 新しく始めるかを選ぶのは、ホームの入口から
+$('#btn-m-sim').addEventListener('click', () => (S.sim ? go('sim') : openSim()));
 
 // ======================================================================
 // 仮置き
@@ -786,19 +802,12 @@ async function openSim() {
     choices.push({ value: 'shoot', label: '今の映像を撮影して始める', desc: 'メイクを進めた後はこちら。撮影した画像は、ミラーの撮影画像にもなります。' });
     r = await choose({
       title: '仮置き',
-      html: cont ? '<p>新しく始めると、前回のパーツ移動と取り消しの履歴は消えます。</p>' : '',
+      html: cont ? '<p>新しく始めると、前回のパーツ移動と取り消しの履歴は消えます（元に戻せません）。</p>' : '',
       choices,
     });
     if (r === 'continue') { go('sim'); return; }
+    // 前回の仮置きが消えることは、このダイアログに書いてあるため、もう一度は確かめない
     if (r !== 'cap' && r !== 'shoot') return;
-    if (cont) {
-      const ok = await choose({
-        title: '前回の仮置きを消しますか',
-        html: '<p>パーツ移動と、取り消しの履歴が消えます。元に戻せません。</p>',
-        choices: [{ value: 'yes', label: '消して新しく始める', danger: true }],
-      });
-      if (ok !== 'yes') return;
-    }
   }
   if (S.screen !== 'home' && S.screen !== 'mirror') return;
   let cap = cap0;

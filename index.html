@@ -79,6 +79,7 @@
             <p class="count-title">撮影まで</p>
             <div class="num"><span class="mono" id="count-num"></span><small>秒</small></div>
             <p class="count-note">揺れが収まるのを待っています。<br>端末に触れずにお待ちください</p>
+            <p class="count-note">（タップで取りやめ）</p>
           </div>
         </div>
         <div class="cam-msg" id="cam-msg" hidden></div>
@@ -144,8 +145,7 @@
             <button class="btn btn-ghost btn-s" id="btn-angle0">垂直に戻す</button>
             <span class="hint" style="margin:0">±10° まで</span>
           </div>
-          <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、撮影する範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
-          <!-- 合わせ方（ヘッダーの「合わせ方」でダイアログに表示する） -->
+          <!-- 合わせ方（ヘッダーの「合わせ方」でダイアログに表示する）。拡大の説明もここに置き、パネルを短くする（「撮影して完了」がスクロールせずに見えるように） -->
           <template id="face-help">
             <p>中心線は映像の中央に固定されています。ヘッド（またはスタンド）を動かして、ガイドに合わせます。</p>
             <ol class="help-steps">
@@ -157,7 +157,10 @@
                 </ul>
               </li>
               <li>わずかに残る傾きは「中心線の角度」で合わせる</li>
+              <li>合わせ終えたら「撮影して完了」を押す</li>
             </ol>
+            <p>ヘッドを動かした後は、「元の位置」の「輪郭を重ねる」で、撮影したときの輪郭に合わせて戻します。</p>
+            <p>2本指で広げると映像を拡大し、ガイドと輪郭も一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、撮影する範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
           </template>
           <!-- 合わせ終えたヘッドを撮影し、ミラーの撮影画像と元の位置の輪郭にする（撮影せずに戻るときは「‹」） -->
           <button class="btn btn-primary btn-block" id="btn-face-done">撮影して完了</button>
@@ -230,6 +233,12 @@
               <button class="btn btn-ghost btn-s" id="part-up" title="上に表示">▲</button>
               <button class="btn btn-ghost btn-s" id="part-down" title="下に表示">▼</button>
             </div>
+            <!-- 左右コピー・囲み直す・削除：主な操作のため、パネルの上のほうに置く（下に置くとスクロールしないと見えない） -->
+            <div class="row" style="margin-top:6px">
+              <button class="btn grow wrap-text" id="btn-copy"></button>
+              <button class="btn btn-ghost btn-s" id="btn-relasso" title="選択範囲を囲み直します">囲み直す</button>
+              <button class="btn btn-danger btn-s" id="btn-del">削除</button>
+            </div>
             <div class="row" style="margin-top:8px;align-items:flex-start">
               <div class="pad" aria-label="移動">
                 <span></span><button data-mv="0,-1">↑</button><span></span>
@@ -251,11 +260,6 @@
             <!-- 折りたたむと開けることに気付きにくいため、常に表示する -->
             <div class="row"><span class="lbl">境界のぼかし</span><input type="range" min="0" max="40" id="feather" aria-label="境界のぼかし幅"></div>
             <div class="row"><span class="lbl">抽出の強さ</span><input type="range" min="0" max="100" id="strength" aria-label="抽出の強さ"></div>
-            <div class="row" style="margin-top:6px">
-              <button class="btn grow wrap-text" id="btn-copy"></button>
-              <button class="btn btn-ghost btn-s" id="btn-relasso" title="選択範囲を囲み直します">囲み直す</button>
-              <button class="btn btn-danger btn-s" id="btn-del">削除</button>
-            </div>
             <p class="hint" id="part-note"></p>
           </div>
           <p class="hint">移動は画像上の2D移動です。大きく動かした場合の見え方は目安です。</p>
