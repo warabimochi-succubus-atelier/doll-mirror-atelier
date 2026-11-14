@@ -121,8 +121,9 @@
           </div>
           <div class="row">
             <span class="lbl">左右反転</span>
-            <span class="hint grow" style="margin:0">映像を鏡のように反転して、全体のバランスを見ます</span>
-            <button class="btn btn-ghost btn-s" id="btn-flip" aria-pressed="false">反転する</button>
+            <span class="hint grow" style="margin:0">押している間だけ映像を鏡のように反転して、全体のバランスを見ます</span>
+            <!-- 修正前と同じく押している間だけ（戻し忘れて左右を取り違えないように。押す・離すで見比べやすい） -->
+            <button class="btn btn-ghost btn-s hold" id="btn-flip" title="押している間だけ左右反転して表示">押して反転</button>
           </div>
           <div class="row">
             <button class="btn btn-ghost btn-s" data-go="setup">設置ガイド</button>

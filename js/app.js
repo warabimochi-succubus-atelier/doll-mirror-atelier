@@ -22,7 +22,7 @@ const S = {
   lastCap: null,     // 前回の撮影画像（輪郭表示用。ミラー・シミュレーションのどちらかと共用）
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで撮り直しを案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
-  flip: false,       // ホームのライブ映像の左右反転（表示だけ。左右の取り違えを防ぐため、設定には残さず起動時は OFF）
+  flip: false,       // ホームのライブ映像の左右反転（表示だけ。ボタンを押している間だけ。左右の取り違えを防ぐため）
   mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 撮影（待ち時間）中の番号。画面を離れたら取りやめる
@@ -244,6 +244,19 @@ $('#zoom').addEventListener('click', (e) => {
 });
 // 候補を開いたまま他の所を触ったら閉じる
 document.addEventListener('pointerdown', (e) => { if (zoomOpen && !e.target.closest('#zoom')) { zoomOpen = false; updateZoomButtons(); } });
+
+/**
+ * 押している間だけ効くボタン（シミュレーションの「修正前」、ホームの左右反転）。
+ * set(true) を押したとき、set(false) を離したとき・指がボタンから外れたときに呼ぶ
+ */
+function holdButton(el, set) {
+  let on = false;
+  const down = (e) => { e.preventDefault(); on = true; el.classList.add('pressing'); set(true); S.dirty = true; };
+  const up = () => { if (!on) return; on = false; el.classList.remove('pressing'); set(false); S.dirty = true; };
+  el.addEventListener('pointerdown', down);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((t) => el.addEventListener(t, up));
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
 
 // ---------------- 撮影 ----------------
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -512,13 +525,11 @@ function updateHome() {
   renderSwatches($('#home-colors'));
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
-  $('#btn-flip').setAttribute('aria-pressed', String(S.flip));
-  $('#btn-flip').textContent = S.flip ? '元に戻す' : '反転する';
   $('#home-hint').textContent = cam.wakeSupported ? '補助の ON / OFF は設定から' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
   renderChips();
 }
 $('#btn-edge').addEventListener('click', () => { settings.assist.edge = !settings.assist.edge; save(); updateHome(); });
-$('#btn-flip').addEventListener('click', () => { S.flip = !S.flip; updateHome(); });
+holdButton($('#btn-flip'), (v) => { S.flip = v; renderChips(); });
 $('#edge-alpha').addEventListener('input', (e) => { settings.edgeAlpha = +e.target.value; save(); updateHome(); });
 $('#btn-mirror').addEventListener('click', () => openMirror());
 $('#btn-sim').addEventListener('click', () => openSim());
@@ -1077,12 +1088,7 @@ $('#btn-copy').addEventListener('click', () => {
 });
 
 // ---------------- 修正前の一時表示（押している間だけ） ----------------
-const before = $('#btn-before');
-const beforeOn = (e) => { e.preventDefault(); S.before = true; before.classList.add('pressing'); S.dirty = true; };
-const beforeOff = () => { if (!S.before) return; S.before = false; before.classList.remove('pressing'); S.dirty = true; };
-before.addEventListener('pointerdown', beforeOn);
-['pointerup', 'pointerleave', 'pointercancel'].forEach((t) => before.addEventListener(t, beforeOff));
-before.addEventListener('contextmenu', (e) => e.preventDefault());
+holdButton($('#btn-before'), (v) => { S.before = v; });
 
 // ======================================================================
 // 設定
