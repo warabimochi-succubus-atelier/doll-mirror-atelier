@@ -1,5 +1,5 @@
 // Doll Mirror Atelier：画面の切り替えと操作
-// 画面：カメラ（ホーム）・顔位置設定・ミラー・シミュレーション（パーツ移動）・設定・設置ガイド
+// 画面：カメラ（ホーム）・顔位置設定・ミラー・仮置き（パーツ移動）・設定・設置ガイド
 // 仕様書「画面構成と操作の流れ」を参照
 
 import * as G from './geom.js';
@@ -11,22 +11,22 @@ import { $, $$, esc, toast, choose } from './ui.js';
 /* global APP_VERSION */
 
 const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
-const TITLES = { face: '顔位置設定', mirror: 'ミラー', sim: 'シミュレーション', setup: '設置ガイド', settings: '設定' };
+const TITLES = { face: '顔位置設定', mirror: 'ミラー', sim: '仮置き', setup: '設置ガイド', settings: '設定' };
 const hhmm = (d) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 // 作業内容（アプリを開いている間だけ保持する。端末には保存しない）
 const S = {
   screen: 'home',
   mirrorCap: null,   // ミラーの撮影画像 { canvas, w, h, angle, guides, time }
-  sim: null,         // シミュレーション
-  lastCap: null,     // 前回の撮影画像（輪郭表示用。ミラー・シミュレーションのどちらかと共用）
+  sim: null,         // 仮置き
+  lastCap: null,     // 前回の撮影画像（輪郭表示用。ミラー・仮置きのどちらかと共用）
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで撮り直しを案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。ボタンを押している間だけ。左右の取り違えを防ぐため）
   mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 撮影（待ち時間）中の番号。画面を離れたら取りやめる
-  // シミュレーション画面
+  // 仮置き画面
   view: null, before: false, mode: null, dirty: true,
   checks: { light: 0, sharp: null, t: 0 },
 };
@@ -72,7 +72,7 @@ function show(s) {
   $('#count').hidden = true;
 }
 /**
- * 画面を移る。移る先が戻るの履歴に既にある場合（ミラー ⇄ シミュレーションの行き来など）は、新しく積まずに、
+ * 画面を移る。移る先が戻るの履歴に既にある場合（ミラー ⇄ 仮置きの行き来など）は、新しく積まずに、
  * その画面まで履歴を巻き戻す（何度行き来しても、戻るでホームまで少ない回数で戻れるように）
  */
 function go(s) {
@@ -175,7 +175,7 @@ function zoomChoices() {
  * （細かい調整はピンチ。映像を隠す部分を小さくするため、候補は開いたときだけ表示する）
  * - ホーム：カメラのズーム倍率（撮影する範囲が変わる）
  * - 顔位置設定・ミラー：表示の拡大（1× が映像の全体）
- * - シミュレーション：表示の拡大（1× が画像の全体）
+ * - 仮置き：表示の拡大（1× が画像の全体）
  */
 let zoomOpen = false, zoomHtml = '';
 const VIEW_ZOOMS = [1, 1.5, 2, 3, 4];
@@ -255,7 +255,7 @@ $('#zoom').addEventListener('click', (e) => {
 document.addEventListener('pointerdown', (e) => { if (zoomOpen && !e.target.closest('#zoom')) { zoomOpen = false; updateZoomButtons(); } });
 
 /**
- * 押している間だけ効くボタン（シミュレーションの「修正前」、ホームの左右反転）。
+ * 押している間だけ効くボタン（仮置きの「修正前」、ホームの左右反転）。
  * set(true) を押したとき、set(false) を離したとき・指がボタンから外れたときに呼ぶ
  */
 function holdButton(el, set) {
@@ -320,7 +320,7 @@ function fitCanvas() {
 }
 /**
  * 描画のループ。端末が熱くならないよう、描き直すのは必要なときだけにする。
- * カメラの画面では、新しいコマが届いたときと、操作（S.dirty）があったときだけ。シミュレーションでは操作があったときだけ
+ * カメラの画面では、新しいコマが届いたときと、操作（S.dirty）があったときだけ。仮置きでは操作があったときだけ
  */
 let lastFrame = null;
 function loop() {
@@ -433,11 +433,11 @@ function drawCapEdges(cap, V, fw, alpha) {
   ctx.restore();
 }
 
-/** ミラーに表示する画像の種類：'live'（今の映像）/ 'before'（撮影画像）/ 'after'（シミュレーションの結果） */
+/** ミラーに表示する画像の種類：'live'（今の映像）/ 'before'（撮影画像）/ 'after'（仮置きの結果） */
 const mirrorWhich = () => (S.mirror.which === 'after' && S.sim ? 'after' : S.mirror.which === 'live' ? 'live' : 'before');
 /**
  * ミラー：片側を中心線で反転し、反対側（重ねる側）の半分にだけ重ねる。
- * ライブは今の映像（撮影しない）、撮影画像はミラーで撮影した画像、シミュレーションはパーツ移動の結果を反転する
+ * ライブは今の映像（撮影しない）、撮影画像はミラーで撮影した画像、仮置きはパーツ移動の結果を反転する
  */
 function drawMirror(V, fw, fh) {
   const which = mirrorWhich();
@@ -502,7 +502,7 @@ function renderChips() {
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
     const which = mirrorWhich();
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
-    chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') :'シミュレーションの結果'}</span>`);
+    chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') :'仮置きの結果'}</span>`);
     const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
       chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
@@ -557,7 +557,7 @@ function updateHome() {
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
   $('#edge-hint').textContent = has
     ? `ヘッドを動かした後、${hhmm(S.lastCap.time)} に撮影したときの輪郭に合わせて戻します`
-    : 'ミラーかシミュレーションで撮影すると使えます';
+    : 'ミラーか仮置きで撮影すると使えます';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
@@ -701,8 +701,8 @@ function updateMirror() {
     const target = S.mirror.basis === 'left' ? -1 : 1;
     const hidden = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target);
     const [tw, sw] = target < 0 ? ['左', '右'] : ['右', '左'];
-    if (hidden) msgs.push(`${tw}側の修正は表示されません（${sw}側を反転して重ねているため）。両側の修正をあわせて見るには、シミュレーション画面を使ってください。`);
-    msgs.push(`シミュレーションの結果は、シミュレーション開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
+    if (hidden) msgs.push(`${tw}側の修正は表示されません（${sw}側を反転して重ねているため）。両側の修正をあわせて見るには、仮置き画面を使ってください。`);
+    msgs.push(`仮置きの結果は、仮置き開始時（${hhmm(S.sim.cap.time)}）の撮影画像がもとです。その後に進めたメイク・削り・パテ盛りは反映されません。`);
     note.innerHTML = msgs.map(esc).join('<br>');
     note.hidden = false;
   } else note.hidden = true;
@@ -740,14 +740,14 @@ $('#btn-retake').addEventListener('click', async () => {
 $('#btn-m-sim').addEventListener('click', () => openSim());
 
 // ======================================================================
-// シミュレーション
+// 仮置き
 // ======================================================================
 async function openSim() {
   if (S.sim && S.sim.hasContent) {
     const sim = S.sim, nParts = sim.parts.length;
     const r = await choose({
-      title: 'シミュレーション',
-      html: `<p>前回のシミュレーション（パーツ ${nParts}つ、${hhmm(sim.cap.time)} に撮影）があります。</p>`,
+      title: '仮置き',
+      html: `<p>前回の仮置き（パーツ ${nParts}つ、${hhmm(sim.cap.time)} に撮影）があります。</p>`,
       choices: [
         { value: 'continue', label: '続きから', desc: '前回の撮影画像と、パーツ移動、取り消しの履歴をそのまま使います。' },
         { value: 'new', label: '撮り直して新しく始める', desc: '今の映像を撮影します。前回のパーツ移動と履歴は消えます。' },
@@ -756,7 +756,7 @@ async function openSim() {
     if (r === 'continue') { go('sim'); return; }
     if (r !== 'new') return;
     const ok = await choose({
-      title: '前回のシミュレーションを消しますか',
+      title: '前回の仮置きを消しますか',
       html: '<p>パーツ移動と、取り消しの履歴が消えます。元に戻せません。</p>',
       choices: [{ value: 'yes', label: '消して撮り直す', danger: true }],
     });
@@ -772,7 +772,7 @@ async function openSim() {
 $('#btn-sim-mirror').addEventListener('click', () => openMirror('after'));
 
 // ---------------- 表示（拡大・移動） ----------------
-/** 画像全体を表示する倍率（シミュレーションの倍率の表示の 1×） */
+/** 画像全体を表示する倍率（仮置きの倍率の表示の 1×） */
 function simFitScale() {
   const cap = S.sim.cap, m = 8 * DPR();
   return G.containRect(cap.w, cap.h, cv.width - 2 * m, cv.height - 2 * m).s;
@@ -1070,7 +1070,7 @@ function updateSimPanel() {
     const notes = [];
     if (p.copy && p.origin === 'keep') notes.push('「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
     else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
-    if (!p.visible) notes.push('非表示のパーツは、ミラーの「シミュレーション」の画像にも含めません。');
+    if (!p.visible) notes.push('非表示のパーツは、ミラーの「仮置き」の画像にも含めません。');
     $('#part-note').textContent = notes.join(' ');
   }
   renderChips();

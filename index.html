@@ -30,7 +30,7 @@
       <div class="bar-title" id="bar-title" data-show="face mirror sim setup settings"></div>
       <span class="grow" data-show="home"></span>
       <button class="btn btn-ghost btn-s" data-show="face" id="btn-face-help">合わせ方</button>
-      <button class="btn btn-ghost btn-s" data-show="mirror" id="btn-m-sim">シミュレーション</button>
+      <button class="btn btn-ghost btn-s" data-show="mirror" id="btn-m-sim">仮置き</button>
       <button class="btn btn-ghost btn-s" data-show="sim" id="btn-sim-mirror">ミラーへ</button>
       <button class="round-btn" data-show="home" data-go="settings" title="設定" aria-label="設定">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 2.8l1.6 2.3 2.7-.6.6 2.7 2.3 1.6-1.2 2.5 1.2 2.5-2.3 1.6-.6 2.7-2.7-.6L12 21.2l-1.6-2.3-2.7.6-.6-2.7-2.3-1.6L6 12.7 4.8 10.2l2.3-1.6.6-2.7 2.7.6z"/></svg>
@@ -42,12 +42,12 @@
 
     <!-- 新しい版が届いたときの案内 -->
     <div id="update-bar" class="update-bar" role="status" hidden>
-      <span class="grow">新しい版があります。更新すると、撮影画像とシミュレーションは消えます（設定は残ります）。</span>
+      <span class="grow">新しい版があります。更新すると、撮影画像と仮置きは消えます（設定は残ります）。</span>
       <button class="btn btn-ghost btn-s" id="update-later">あとで</button>
       <button class="btn btn-primary btn-s" id="update-now">更新する</button>
     </div>
 
-    <!-- シミュレーションの操作バー -->
+    <!-- 仮置きの操作バー -->
     <div class="simbar" data-show="sim">
       <button class="btn btn-s" id="btn-undo" title="元に戻す" aria-label="元に戻す">↶</button>
       <button class="btn btn-s" id="btn-redo" title="やり直す" aria-label="やり直す">↷</button>
@@ -101,7 +101,7 @@
               </button>
               <button class="btn" id="btn-sim">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M11 15q4-3 8 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M14 10l2 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                <span class="nav-text"><b>シミュレーション</b><small>撮影してメイクの移動を試す</small></span>
+                <span class="nav-text"><b>仮置き</b><small>撮影して、メイクを動かしてみる</small></span>
               </button>
             </div>
           </div>
@@ -173,9 +173,9 @@
           </div>
           <div class="row">
             <span class="lbl">表示する画像</span>
-            <!-- 何を映すかで呼ぶ。ライブ：今の映像（撮影しない）、撮影画像：ミラーで撮影した画像、シミュレーション：パーツ移動の結果
+            <!-- 何を映すかで呼ぶ。ライブ：今の映像（撮影しない）、撮影画像：ミラーで撮影した画像、仮置き：パーツ移動の結果
                  （「撮影」だけだと撮影する操作のボタンに見えるため「撮影画像」とする） -->
-            <div class="seg" id="m-which"><button data-v="live">ライブ</button><button data-v="before">撮影画像</button><button data-v="after">シミュレーション</button></div>
+            <div class="seg" id="m-which"><button data-v="live">ライブ</button><button data-v="before">撮影画像</button><button data-v="after">仮置き</button></div>
           </div>
           <div class="row">
             <span class="lbl">表示方法</span>
@@ -195,7 +195,7 @@
             <span class="hint grow" style="margin:0">重なりのわずかなずれを直す</span>
             <button class="btn btn-ghost btn-s" id="m-adj0">元に戻す</button>
           </div>
-          <!-- シミュレーションのパーツの操作と同じ並び（左に上下左右の矢印、右に回転・大きさ） -->
+          <!-- 仮置きのパーツの操作と同じ並び（左に上下左右の矢印、右に回転・大きさ） -->
           <div class="row" id="m-adj" style="align-items:flex-start">
             <div class="pad" aria-label="移動">
               <span></span><button data-adj="y-" aria-label="上へ">↑</button><span></span>
@@ -212,7 +212,7 @@
           </div>
         </div>
 
-        <!-- シミュレーション：パーツ移動 -->
+        <!-- 仮置き：パーツ移動 -->
         <div data-show="sim">
           <div class="row">
             <div class="parts grow" id="parts"></div>
@@ -288,9 +288,9 @@
         <div class="card">
           <h2>このアプリについて <span class="badge" data-app-version></span></h2>
           <ul class="plain">
-            <li>カメラの映像と撮影画像は端末の外へ送らず、保存もしません。撮影画像とシミュレーションは、アプリを開いている間だけ保持します。</li>
+            <li>カメラの映像と撮影画像は端末の外へ送らず、保存もしません。撮影画像と仮置きは、アプリを開いている間だけ保持します。</li>
             <li>設定（顔位置設定・ズーム倍率・補助の ON / OFF など）は、この端末のブラウザに保存します。</li>
-            <li>シミュレーションは当たり確認用の目安です。</li>
+            <li>仮置きは当たり確認用の目安です。</li>
             <li>作者・ライセンス・マニュアルへのリンクは、画面右上の ⓘ から開けます。</li>
           </ul>
         </div>
