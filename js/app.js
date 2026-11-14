@@ -1001,7 +1001,7 @@ function updateSimPanel() {
     $('#part-up').disabled = i === sim.parts.length - 1;
     $('#part-down').disabled = i === 0;
     setSeg('#origin', p.origin);
-    $('#origin-lbl').textContent = p.copy ? 'コピー先' : '元の位置';
+    $('#origin-lbl').textContent = p.copy ? 'コピー先のメイク' : '元のメイク';
     $('#feather').value = p.feather;
     $('#strength').value = Math.round(p.strength * 100);
     const cs = copySide(p);
@@ -1013,7 +1013,7 @@ function updateSimPanel() {
     $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
     $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
     const notes = [];
-    if (p.copy && p.origin === 'keep') notes.push('「コピー先」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
+    if (p.copy && p.origin === 'keep') notes.push('「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
     else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
     if (!p.visible) notes.push('非表示のパーツは、ミラーの修正後の画像にも含めません。');
     $('#part-note').textContent = notes.join(' ');

@@ -154,7 +154,7 @@ export const LIGHT_DIFF = 0.12;
  * @param strength 抽出の強さ（0〜1）
  * @returns {{x, y, w, h, layer, fade, erase}}
  *   layer：乗算で重ねるレイヤー（肌色の部分は白＝重ねても変わらない）
- *   fade / erase：元の位置を「薄くする」「消す」ときに上に描く画像（周囲の肌色で補う）
+ *   fade / erase：元のメイクを「薄くする」「消す」ときに上に描く画像（周囲の肌色で補う）
  */
 export function extract(src, poly, feather, strength) {
   const bb = bbox(poly);
