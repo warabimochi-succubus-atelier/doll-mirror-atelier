@@ -108,6 +108,11 @@
             <span class="val mono" id="edge-alpha-v"></span>
           </div>
           <div class="row">
+            <span class="lbl">左右反転</span>
+            <span class="hint grow" style="margin:0">映像を鏡のように反転して、全体のバランスを見ます</span>
+            <button class="btn btn-ghost btn-s" id="btn-flip" aria-pressed="false">反転する</button>
+          </div>
+          <div class="row">
             <button class="btn btn-ghost btn-s" data-go="setup">設置ガイド</button>
             <span class="hint" style="margin:0" id="home-hint">補助の ON / OFF は設定から</span>
           </div>
@@ -128,26 +133,16 @@
             <button class="btn btn-ghost btn-s" id="btn-angle0">垂直に戻す</button>
             <span class="hint" style="margin:0">±10° まで</span>
           </div>
-          <div class="divider"></div>
-          <div class="row">
-            <span class="lbl">目の高さ</span>
-            <div class="fine"><button class="btn" data-eye="-0.002">▲</button><button class="btn" data-eye="0.002">▼</button></div>
-          </div>
-          <div class="row">
-            <span class="lbl">目頭の間隔</span>
-            <div class="fine"><button class="btn" data-sp="-0.004">狭く</button><button class="btn" data-sp="0.004">広く</button></div>
-          </div>
           <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、取り込む範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
           <!-- 合わせ方（ヘッダーの「合わせ方」でダイアログに表示する） -->
           <template id="face-help">
             <p>中心線は映像の中央に固定されています。ヘッド（またはスタンド）を動かして、ガイドに合わせます。</p>
             <ol class="help-steps">
-              <li>「目の高さ」「目頭の間隔」で、目の高さの線と目頭マークを、ヘッドの目頭のおおよその位置に合わせる</li>
-              <li>ヘッド（またはスタンド）を左右に動かし、左右の目頭が目頭マークに対称に重なるようにする</li>
+              <li>ヘッド（またはスタンド）を左右に動かし、左右の目頭が中心線から同じ目盛りの数だけ離れるようにする（黄色の横線の目盛りで数える。5目盛りごとに長い目盛り）</li>
               <li>目頭・鼻先・口の中央が中心線上に並ぶよう、ヘッドの傾き・向きを直す
                 <ul>
-                  <li>左右の目頭が目の高さの線から上下にずれる：ヘッドが傾いている</li>
-                  <li>片方の目頭だけがマークの外側にずれる：ヘッドが横を向いている</li>
+                  <li>左右の目頭が、近くの横線に対して上下にずれる：ヘッドが傾いている</li>
+                  <li>鼻先・口は中心線上にあるのに、中心線から目頭までの目盛りの数が左右で違う：ヘッドが横を向いている</li>
                 </ul>
               </li>
               <li>わずかに残る傾きは「中心線の角度」で合わせる</li>

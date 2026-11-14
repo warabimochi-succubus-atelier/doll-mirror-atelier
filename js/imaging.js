@@ -113,7 +113,7 @@ export function sharpness(src, rect) {
 }
 
 /**
- * 照明の左右差：フレームガイドの楕円の中で、目の高さの線より上（額）の左半分と右半分の明るさを比べる
+ * 照明の左右差：フレームガイドの楕円の中で、上の部分（額。中心から縦の半径の 0.35 倍より上）の左半分と右半分の明るさを比べる
  * @returns {number} 画面右側の明るさ ÷ 画面左側の明るさ − 1（正：画面右側が明るい）。判定できなければ 0
  */
 export function lightBalance(src, w, h, g) {
@@ -122,13 +122,13 @@ export function lightBalance(src, w, h, g) {
   const d = ctx2d(c, { willReadFrequently: true }).getImageData(0, 0, cw, ch).data;
   const ax = axis(cw, ch, g.angle);
   const ry = (g.frame * ch) / 2, rx = ry * FRAME_ASPECT;
-  const eye = (g.eyeY - 0.5) * ch;
+  const top = -ry * 0.35;
   let l = 0, ln = 0, r = 0, rn = 0;
   for (let y = 0; y < ch; y++) {
     for (let x = 0; x < cw; x++) {
       const p = [x + 0.5, y + 0.5];
       const a = alongOf(ax, p), sd = sideOf(ax, p);
-      if (a >= eye) continue; // 目の高さより下（目・眉・チーク）は含めない
+      if (a >= top) continue; // 額より下（眉・目・チーク）は含めない
       if ((sd / rx) ** 2 + (a / ry) ** 2 > 1) continue;
       if (Math.abs(sd) < rx * 0.08) continue; // 中心線の近くは除く
       const i = (y * cw + x) * 4;

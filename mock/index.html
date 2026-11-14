@@ -144,9 +144,6 @@
     details.fold[open] > summary::before { content: "▾ "; }
 
     /* ---- シミュレーション ---- */
-    .tabs { display: flex; gap: 4px; padding: 6px 12px; background: var(--bg); border-bottom: 1px solid var(--line); flex: none; }
-    .tabs button { flex: 1; padding: 6px 12px; border-radius: 999px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
-    .tabs button.on { background: var(--accent); color: #fff; }
     .simbar { flex: none; display: flex; gap: 6px; align-items: center; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
     .parts { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
     .part { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; white-space: nowrap; background: var(--surface); cursor: pointer; }
@@ -156,9 +153,6 @@
     .pad { display: grid; grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(3, 30px); gap: 3px; }
     .pad button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; cursor: pointer; font-size: 12px; padding: 0; }
     .pad .c { font-size: 10px; color: var(--ink-2); }
-    .kind { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
-    .kind.cut { background: #e8f0fb; color: #2f5f9c; }
-    .kind.putty { background: #fbefe3; color: #9a5a1c; }
     .is-before .mod { display: none; }
 
     /* ---- 設定 ---- */
@@ -276,10 +270,24 @@
     <!-- 中心線と合わせ用ガイド -->
     <symbol id="guides" viewBox="0 0 360 640">
       <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1.5" stroke-dasharray="8 6"/>
-      <line x1="40" y1="318" x2="320" y2="318" stroke="#ffd36b" stroke-width="1.2" stroke-dasharray="4 4"/>
-      <path d="M154 306 V330 M206 306 V330" stroke="#ffd36b" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="180" cy="374" r="6" fill="none" stroke="#8fd3ff" stroke-width="1.5"/>
-      <rect x="168" y="404" width="24" height="12" rx="6" fill="none" stroke="#8fd3ff" stroke-width="1.5"/>
+      <path d="M33.6 157.6H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 154.9V160.3 M192.2 154.9V160.3 M155.6 154.9V160.3 M204.4 154.9V160.3 M143.4 154.9V160.3 M216.6 154.9V160.3 M131.2 154.9V160.3 M228.8 154.9V160.3 M119.0 152.1V163.1 M241.0 152.1V163.1 M106.8 154.9V160.3 M253.2 154.9V160.3 M94.6 154.9V160.3 M265.4 154.9V160.3 M82.4 154.9V160.3 M277.6 154.9V160.3 M70.2 154.9V160.3 M289.8 154.9V160.3 M58.0 152.1V163.1 M302.0 152.1V163.1 M45.8 154.9V160.3 M314.2 154.9V160.3 M33.6 154.9V160.3 M326.4 154.9V160.3" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 194.2H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 191.5V196.9 M192.2 191.5V196.9 M155.6 191.5V196.9 M204.4 191.5V196.9 M143.4 191.5V196.9 M216.6 191.5V196.9 M131.2 191.5V196.9 M228.8 191.5V196.9 M119.0 188.7V199.7 M241.0 188.7V199.7 M106.8 191.5V196.9 M253.2 191.5V196.9 M94.6 191.5V196.9 M265.4 191.5V196.9 M82.4 191.5V196.9 M277.6 191.5V196.9 M70.2 191.5V196.9 M289.8 191.5V196.9 M58.0 188.7V199.7 M302.0 188.7V199.7 M45.8 191.5V196.9 M314.2 191.5V196.9 M33.6 191.5V196.9 M326.4 191.5V196.9" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 230.8H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 228.1V233.5 M192.2 228.1V233.5 M155.6 228.1V233.5 M204.4 228.1V233.5 M143.4 228.1V233.5 M216.6 228.1V233.5 M131.2 228.1V233.5 M228.8 228.1V233.5 M119.0 225.3V236.3 M241.0 225.3V236.3 M106.8 228.1V233.5 M253.2 228.1V233.5 M94.6 228.1V233.5 M265.4 228.1V233.5 M82.4 228.1V233.5 M277.6 228.1V233.5 M70.2 228.1V233.5 M289.8 228.1V233.5 M58.0 225.3V236.3 M302.0 225.3V236.3 M45.8 228.1V233.5 M314.2 228.1V233.5 M33.6 228.1V233.5 M326.4 228.1V233.5" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 267.4H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 264.7V270.1 M192.2 264.7V270.1 M155.6 264.7V270.1 M204.4 264.7V270.1 M143.4 264.7V270.1 M216.6 264.7V270.1 M131.2 264.7V270.1 M228.8 264.7V270.1 M119.0 261.9V272.9 M241.0 261.9V272.9 M106.8 264.7V270.1 M253.2 264.7V270.1 M94.6 264.7V270.1 M265.4 264.7V270.1 M82.4 264.7V270.1 M277.6 264.7V270.1 M70.2 264.7V270.1 M289.8 264.7V270.1 M58.0 261.9V272.9 M302.0 261.9V272.9 M45.8 264.7V270.1 M314.2 264.7V270.1 M33.6 264.7V270.1 M326.4 264.7V270.1" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 304.0H326.4" stroke="#ff80aa" stroke-opacity=".85" stroke-width="1.5"/>
+      <path d="M167.8 301.3V306.7 M192.2 301.3V306.7 M155.6 301.3V306.7 M204.4 301.3V306.7 M143.4 301.3V306.7 M216.6 301.3V306.7 M131.2 301.3V306.7 M228.8 301.3V306.7 M119.0 298.5V309.5 M241.0 298.5V309.5 M106.8 301.3V306.7 M253.2 301.3V306.7 M94.6 301.3V306.7 M265.4 301.3V306.7 M82.4 301.3V306.7 M277.6 301.3V306.7 M70.2 301.3V306.7 M289.8 301.3V306.7 M58.0 298.5V309.5 M302.0 298.5V309.5 M45.8 301.3V306.7 M314.2 301.3V306.7 M33.6 301.3V306.7 M326.4 301.3V306.7" stroke="#ff80aa" stroke-opacity=".95" stroke-width="1"/>
+      <path d="M33.6 340.6H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 337.9V343.3 M192.2 337.9V343.3 M155.6 337.9V343.3 M204.4 337.9V343.3 M143.4 337.9V343.3 M216.6 337.9V343.3 M131.2 337.9V343.3 M228.8 337.9V343.3 M119.0 335.1V346.1 M241.0 335.1V346.1 M106.8 337.9V343.3 M253.2 337.9V343.3 M94.6 337.9V343.3 M265.4 337.9V343.3 M82.4 337.9V343.3 M277.6 337.9V343.3 M70.2 337.9V343.3 M289.8 337.9V343.3 M58.0 335.1V346.1 M302.0 335.1V346.1 M45.8 337.9V343.3 M314.2 337.9V343.3 M33.6 337.9V343.3 M326.4 337.9V343.3" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 377.2H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 374.5V379.9 M192.2 374.5V379.9 M155.6 374.5V379.9 M204.4 374.5V379.9 M143.4 374.5V379.9 M216.6 374.5V379.9 M131.2 374.5V379.9 M228.8 374.5V379.9 M119.0 371.7V382.7 M241.0 371.7V382.7 M106.8 374.5V379.9 M253.2 374.5V379.9 M94.6 374.5V379.9 M265.4 374.5V379.9 M82.4 374.5V379.9 M277.6 374.5V379.9 M70.2 374.5V379.9 M289.8 374.5V379.9 M58.0 371.7V382.7 M302.0 371.7V382.7 M45.8 374.5V379.9 M314.2 374.5V379.9 M33.6 374.5V379.9 M326.4 374.5V379.9" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 413.8H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 411.1V416.5 M192.2 411.1V416.5 M155.6 411.1V416.5 M204.4 411.1V416.5 M143.4 411.1V416.5 M216.6 411.1V416.5 M131.2 411.1V416.5 M228.8 411.1V416.5 M119.0 408.3V419.3 M241.0 408.3V419.3 M106.8 411.1V416.5 M253.2 411.1V416.5 M94.6 411.1V416.5 M265.4 411.1V416.5 M82.4 411.1V416.5 M277.6 411.1V416.5 M70.2 411.1V416.5 M289.8 411.1V416.5 M58.0 408.3V419.3 M302.0 408.3V419.3 M45.8 411.1V416.5 M314.2 411.1V416.5 M33.6 411.1V416.5 M326.4 411.1V416.5" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
+      <path d="M33.6 450.4H326.4" stroke="#ffd36b" stroke-opacity=".45" stroke-width="1"/>
+      <path d="M167.8 447.7V453.1 M192.2 447.7V453.1 M155.6 447.7V453.1 M204.4 447.7V453.1 M143.4 447.7V453.1 M216.6 447.7V453.1 M131.2 447.7V453.1 M228.8 447.7V453.1 M119.0 444.9V455.9 M241.0 444.9V455.9 M106.8 447.7V453.1 M253.2 447.7V453.1 M94.6 447.7V453.1 M265.4 447.7V453.1 M82.4 447.7V453.1 M277.6 447.7V453.1 M70.2 447.7V453.1 M289.8 447.7V453.1 M58.0 444.9V455.9 M302.0 444.9V455.9 M45.8 447.7V453.1 M314.2 447.7V453.1 M33.6 447.7V453.1 M326.4 447.7V453.1" stroke="#ffd36b" stroke-opacity=".8" stroke-width="1"/>
     </symbol>
   </defs>
 </svg>
@@ -355,6 +363,11 @@
           <button class="btn btn-ghost btn-s ml-auto" disabled>重ねる</button>
         </div>
         <div class="row">
+          <span class="lbl">左右反転</span>
+          <span class="hint" style="margin:0">映像を鏡のように反転して、全体のバランスを見ます</span>
+          <button class="btn btn-ghost btn-s ml-auto">反転する</button>
+        </div>
+        <div class="row">
           <button class="btn btn-ghost btn-s" data-goto="s-setup">設置ガイド</button>
           <span class="hint" style="margin:0">補助の ON / OFF は設定から</span>
         </div>
@@ -397,7 +410,7 @@
   <section class="shot" id="s-face" data-title="顔位置設定">
     <div class="shot-cap">
       <h2><span class="no">3</span>顔位置設定</h2>
-      <p>中心線は映像の中央に固定。ヘッド（またはスタンド）を動かして、目頭マーク・目の高さの線・鼻先と口の目安に合わせる。中心線は角度だけ微調整できる。ルーペで重なりを確認する。</p>
+      <p>中心線は映像の中央に固定。中心線に直角な目盛り付きの横線を等間隔に表示し、左右の目頭が中心線から同じ目盛りの数になるようヘッド（またはスタンド）を動かす。調整のボタンは無く、中心線は角度だけ微調整できる。細かいところはピンチで拡大して確かめる（ガイドも追従）。合わせ方はヘッダーの「合わせ方」でダイアログに表示する。</p>
     </div>
     <div class="phone">
       <header class="topbar">
@@ -409,15 +422,6 @@
         <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
           <use href="#head"/>
           <g transform="rotate(0.4 180 320)"><use href="#guides"/></g>
-          <!-- ルーペ -->
-          <g>
-            <clipPath id="loupe"><circle cx="288" cy="120" r="56"/></clipPath>
-            <g clip-path="url(#loupe)">
-              <rect x="232" y="64" width="112" height="112" fill="#ddd"/>
-              <g transform="translate(288 120) scale(2.4) translate(-158 -318)"><use href="#head" width="360" height="640"/><use href="#guides" width="360" height="640"/></g>
-            </g>
-            <circle cx="288" cy="120" r="56" fill="none" stroke="#fff" stroke-width="3"/>
-          </g>
         </svg>
         <div class="ov" style="left:10px;top:10px"><span class="pill">中心線の角度 <b class="mono">+0.4°</b></span></div>
         <div class="ov" style="left:10px;bottom:10px;right:10px"><span class="pill" style="white-space:normal">画面を操作した後は、揺れが収まってから重なりを確かめてください</span></div>
@@ -434,25 +438,7 @@
           <button class="btn btn-ghost btn-s">垂直に戻す</button>
           <span class="hint" style="margin:0">±10° まで</span>
         </div>
-        <div class="divider"></div>
-        <div class="row">
-          <span class="lbl">目の高さ</span>
-          <div class="fine"><button class="btn">▲ 大</button><button class="btn">▲</button><button class="btn">▼</button><button class="btn">▼ 大</button></div>
-        </div>
-        <div class="row">
-          <span class="lbl">目頭の間隔</span>
-          <div class="fine"><button class="btn">狭く</button><button class="btn">広く</button></div>
-          <button class="btn btn-ghost btn-s ml-auto on">ルーペ</button>
-        </div>
-        <details class="fold" style="margin-top:6px">
-          <summary>合わせ方</summary>
-          <ol class="hint" style="padding-left:18px;margin-top:0">
-            <li>目頭マークの間隔と目の高さの線を、目頭のおおよその位置に合わせる</li>
-            <li>ヘッドを左右に動かし、左右の目頭をマークに対称に重ねる</li>
-            <li>目頭・鼻先・口の中央が中心線に並ぶよう傾き・向きを直す（目頭が線から上下にずれる＝傾き、片方だけ外へずれる＝横向き）</li>
-            <li>わずかに残る傾きは中心線の角度で合わせる</li>
-          </ol>
-        </details>
+        <p class="hint">2本指で広げると映像を拡大し、ガイドも一緒に拡大します。</p>
         <button class="btn btn-primary btn-block" data-goto="s-face-close" style="margin-top:6px">完了</button>
       </div>
     </div>
@@ -652,7 +638,7 @@
   <section class="shot" id="s-simstart" data-title="シミュレーション開始">
     <div class="shot-cap">
       <h2><span class="no">8</span>シミュレーションの開始（続きがあるとき）</h2>
-      <p>アプリを開いている間にシミュレーションを行っていた場合のみ表示。「取り直して新しく始める」はパーツ移動・形の変更と履歴を破棄するため、確認を挟む。</p>
+      <p>アプリを開いている間にシミュレーションを行っていた場合のみ表示。「取り直して新しく始める」はパーツ移動と履歴を破棄するため、確認を挟む。</p>
     </div>
     <div class="phone">
       <header class="topbar">
@@ -668,9 +654,9 @@
         <div class="dialog">
           <div class="dlg-body">
             <h2>シミュレーション</h2>
-            <p>前回のシミュレーション（パーツ 3つ・形の変更 1か所、14:32 に取り込み）があります。</p>
-            <button class="choice" data-goto="s-sim"><b>続きから</b><span>前回の取り込み画像と、パーツ移動・形の変更、取り消しの履歴をそのまま使います。</span></button>
-            <button class="choice" data-goto="s-count"><b>取り直して新しく始める</b><span>今の映像を取り込みます。前回のパーツ移動・形の変更と履歴は消えます。</span></button>
+            <p>前回のシミュレーション（パーツ 3つ、14:32 に取り込み）があります。</p>
+            <button class="choice" data-goto="s-sim"><b>続きから</b><span>前回の取り込み画像と、パーツ移動、取り消しの履歴をそのまま使います。</span></button>
+            <button class="choice" data-goto="s-count"><b>取り直して新しく始める</b><span>今の映像を取り込みます。前回のパーツ移動と履歴は消えます。</span></button>
           </div>
           <div class="dlg-foot"><span class="grow"></span><button class="btn btn-ghost" data-goto="s-home">キャンセル</button></div>
         </div>
@@ -690,10 +676,6 @@
         <div class="bar-title">シミュレーション</div>
         <button class="btn btn-ghost btn-s" data-goto="s-mirror-after">ミラーへ</button>
       </header>
-      <div class="tabs" role="tablist">
-        <button class="on" data-goto="s-sim">パーツ移動</button>
-        <button data-goto="s-shape">形の変更</button>
-      </div>
       <div class="simbar">
         <button class="btn btn-s" title="元に戻す" aria-label="元に戻す">↶</button>
         <button class="btn btn-s" title="やり直す" aria-label="やり直す" disabled>↷</button>
@@ -775,7 +757,6 @@
         <button class="back" aria-label="戻る">‹</button>
         <div class="bar-title">シミュレーション</div>
       </header>
-      <div class="tabs"><button class="on">パーツ移動</button><button>形の変更</button></div>
       <div class="stage">
         <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"><use href="#head"/></svg>
       </div>
@@ -792,88 +773,10 @@
     </div>
   </section>
 
-  <!-- ===================== 11. シミュレーション：形の変更 ===================== -->
-  <section class="shot" id="s-shape" data-title="形の変更">
-    <div class="shot-cap">
-      <h2><span class="no">11</span>シミュレーション：形の変更</h2>
-      <p>削り・パテ盛りの当たり確認。対象（アイホール・頬・あご）を選ぶと影響範囲を表示し、輪郭をドラッグして押し広げ・引き込む。方向に応じて「削り」「パテ盛り」を表示する。</p>
-    </div>
-    <div class="phone sim-phone">
-      <header class="topbar">
-        <button class="back" data-goto="s-home" aria-label="戻る">‹</button>
-        <div class="bar-title">シミュレーション</div>
-        <button class="btn btn-ghost btn-s" data-goto="s-mirror-after">ミラーへ</button>
-      </header>
-      <div class="tabs" role="tablist">
-        <button data-goto="s-sim">パーツ移動</button>
-        <button class="on" data-goto="s-shape">形の変更</button>
-      </div>
-      <div class="simbar">
-        <button class="btn btn-s" aria-label="元に戻す">↶</button>
-        <button class="btn btn-s" aria-label="やり直す" disabled>↷</button>
-        <span class="grow"></span>
-        <button class="btn btn-s hold" data-hold>修正前</button>
-      </div>
-      <div class="stage">
-        <svg class="feed" viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice">
-          <use href="#head"/>
-          <g class="mod">
-            <!-- 変形後のアイホール（目尻側を切れ長に） -->
-            <path d="M98 318 C98 292 126 290 140 292 C160 294 160 308 158 318 C156 340 140 346 128 346 C108 346 96 336 98 318Z" fill="#3a2a2e" opacity=".85"/>
-            <path d="M92 316 C92 290 126 288 140 292 C160 294 160 308 158 318 C156 340 140 346 128 346 C104 346 90 336 92 316Z" fill="none" stroke="#fff" stroke-width="1.5"/>
-          </g>
-          <!-- 影響範囲 -->
-          <circle cx="126" cy="318" r="58" fill="rgba(143,211,255,.12)" stroke="#8fd3ff" stroke-width="1.5" stroke-dasharray="5 4"/>
-          <!-- ブラシと方向 -->
-          <circle cx="96" cy="312" r="16" fill="none" stroke="#ffd36b" stroke-width="2"/>
-          <path d="M104 312 h-24 m6 -6 l-6 6 l6 6" stroke="#ffd36b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="180" y1="0" x2="180" y2="640" stroke="#8fd3ff" stroke-width="1" stroke-dasharray="8 6" opacity=".6"/>
-        </svg>
-        <div class="ov" style="left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">
-          <span class="pill">右アイホール（画面左側）</span>
-          <span class="kind cut" style="padding:4px 10px">削り</span>
-        </div>
-        <div class="ov" style="left:10px;right:10px;bottom:10px"><span class="pill" style="white-space:normal">輪郭の位置・形の当たり確認用です。奥行き（高さ・膨らみ）と陰影の変化は再現しません。</span></div>
-      </div>
-      <div class="panel">
-        <div class="row">
-          <span class="lbl">対象</span>
-          <select class="grow" aria-label="対象">
-            <option>左アイホール（画面右側）</option>
-            <option selected>右アイホール（画面左側）</option>
-            <option>左頬のライン（画面右側）</option>
-            <option>右頬のライン（画面左側）</option>
-            <option>あごのライン</option>
-          </select>
-        </div>
-        <div class="row">
-          <span class="lbl">ブラシ</span>
-          <input type="range" value="35" aria-label="影響範囲の大きさ">
-        </div>
-        <div class="row">
-          <span class="lbl">大きさ</span>
-          <div class="fine"><button class="btn">−</button><button class="btn">＋</button></div>
-          <span class="hint" style="margin:0">アイホールのみ</span>
-        </div>
-        <div class="row">
-          <span class="lbl">目安</span>
-          <span class="kind cut">広げる・引き込む＝削り</span>
-          <span class="kind putty">外へ押し広げる＝パテ盛り</span>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn grow">左アイホールへ左右コピー</button>
-          <button class="btn btn-ghost btn-s">この対象をリセット</button>
-        </div>
-        <p class="hint warn">右アイホールに重なる「右アイライン」は変形に合わせて動きました。</p>
-        <p class="hint">アイを入れたまま変形すると、アイも引き伸ばされます。変形する側のアイを外し、アイとの組み合わせはミラーで確認してください。</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== 12. 設定 ===================== -->
+  <!-- ===================== 11. 設定 ===================== -->
   <section class="shot" id="s-settings" data-title="設定">
     <div class="shot-cap">
-      <h2><span class="no">12</span>設定</h2>
+      <h2><span class="no">11</span>設定</h2>
       <p>アプリの設定（アプリを閉じても保持）と設置方法の案内。「このアプリについて」の版の表示は参考 PWA と同じ形。</p>
     </div>
     <div class="phone">
@@ -926,10 +829,10 @@
     </div>
   </section>
 
-  <!-- ===================== 13. 設置ガイド ===================== -->
+  <!-- ===================== 12. 設置ガイド ===================== -->
   <section class="shot" id="s-setup" data-title="設置ガイド">
     <div class="shot-cap">
-      <h2><span class="no">13</span>設置ガイド</h2>
+      <h2><span class="no">12</span>設置ガイド</h2>
       <p>ヘッド・端末・照明の配置例を図で案内する。カメラ画面と設定から開ける。</p>
     </div>
     <div class="phone">
@@ -972,10 +875,10 @@
     </div>
   </section>
 
-  <!-- ===================== 14. このアプリについて ===================== -->
+  <!-- ===================== 13. このアプリについて ===================== -->
   <section class="shot" id="s-about" data-title="このアプリについて">
     <div class="shot-cap">
-      <h2><span class="no">14</span>このアプリについて</h2>
+      <h2><span class="no">13</span>このアプリについて</h2>
       <p>ヘッダーの ⓘ から開く（参考 PWA と同じ構成：アイコン・タイトル・版・説明・作者・リンク）。ⓘ を押すと実際のダイアログも開きます。</p>
     </div>
     <div class="phone">

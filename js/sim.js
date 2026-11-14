@@ -28,7 +28,7 @@ let seq = 1;
 
 export class Sim {
   /**
-   * @param cap 取り込み画像 { canvas, w, h, angle, guides: { eyeY, spacing, frame }, time }
+   * @param cap 取り込み画像 { canvas, w, h, angle, guides: { frame }, time }
    */
   constructor(cap) {
     this.cap = cap;
@@ -42,6 +42,8 @@ export class Sim {
 
   get ax() { return G.axis(this.cap.w, this.cap.h, this.cap.angle); }
   get refl() { return G.reflectM(this.ax); }
+  /** 中心線からこの距離より近いものを中央とみなす（フレームガイドの楕円の横の半径の 1/10） */
+  get centerHalf() { return ((this.cap.guides.frame * this.cap.h) / 2) * IM.FRAME_ASPECT * 0.1; }
   get hasContent() { return this.parts.length > 0; }
   part(id) { return this.parts.find((p) => p.id === id) || null; }
   get selPart() { return this.part(this.sel); }
@@ -77,7 +79,7 @@ export class Sim {
   /** 囲んだ範囲の側：'L'（ドールの左＝画面右側）/ 'R'（ドールの右＝画面左側）/ 'C'（中心線にかかる中央） */
   sideOfPoly(poly) {
     const s = G.sideOf(this.ax, G.centroid(poly));
-    return Math.abs(s) < this.cap.guides.spacing * this.cap.w * 0.35 ? 'C' : s > 0 ? 'L' : 'R';
+    return Math.abs(s) < this.centerHalf * 1.15 ? 'C' : s > 0 ? 'L' : 'R';
   }
   /** その側で使われていない最も小さい番号 */
   freeNo(side, exceptId) {
@@ -183,7 +185,7 @@ export class Sim {
     const ex = this.layerOf(p);
     const c = G.ap(this.matrix(p), [ex.x + ex.w / 2, ex.y + ex.h / 2]);
     const s = G.sideOf(this.ax, c);
-    return Math.abs(s) < this.cap.guides.spacing * this.cap.w * 0.3 ? 0 : Math.sign(s);
+    return Math.abs(s) < this.centerHalf ? 0 : Math.sign(s);
   }
   // ---------------- 描画 ----------------
   /**

@@ -22,6 +22,7 @@ const S = {
   lastCap: null,     // 前回の取り込み画像（輪郭表示用。ミラー・シミュレーションのどちらかと共用）
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで取り直しを案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
+  flip: false,       // ホームのライブ映像の左右反転（表示だけ。左右の取り違えを防ぐため、設定には残さず起動時は OFF）
   mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 } },
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 取り込み（待ち時間）中の番号。画面を離れたら取りやめる
@@ -161,20 +162,6 @@ async function setZoom(v) {
 }
 $('#zoom').addEventListener('click', (e) => { const b = e.target.closest('[data-z]'); if (b) setZoom(+b.dataset.z); });
 
-/**
- * 今のズーム倍率での合わせ用ガイドの位置（映像に対する比率）。
- * ガイドは合わせたときのズーム倍率（guideZoom）と一緒に保持し、ズームを変えたら映像の中央を基準に換算する
- * （ズームは映像の中央を基準に拡大するため、ヘッドに対するガイドの位置が変わらない）
- */
-function guideNow() {
-  const k = cam.zoom / (settings.guideZoom || cam.zoom);
-  return { eyeY: 0.5 + (settings.eyeY - 0.5) * k, spacing: settings.spacing * k, frame: settings.frame };
-}
-/** 合わせ用ガイドの位置を、今のズーム倍率での値として保存する */
-function setGuide(eyeY, spacing) {
-  settings.eyeY = eyeY; settings.spacing = spacing; settings.guideZoom = cam.zoom; save();
-}
-
 // ---------------- 取り込み ----------------
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 async function countdown(sec) {
@@ -206,7 +193,7 @@ async function capture() {
     }
     const cap = {
       canvas, w: canvas.width, h: canvas.height, angle: settings.angle, time: new Date(),
-      guides: guideNow(),
+      guides: { frame: settings.frame },
     };
     S.lastCap = cap;
     return cap;
@@ -240,24 +227,33 @@ function line(a, b, color, w = 1.5, dash = null) {
   ctx.strokeStyle = color; ctx.lineWidth = w * DPR(); ctx.setLineDash(dash ? dash.map((d) => d * DPR()) : []); ctx.stroke(); ctx.setLineDash([]);
 }
 
-/** 中心線と合わせ用ガイド（目の高さの線・目頭マーク・鼻先と口の目安）。M：映像の座標 → 画面の座標 */
+/**
+ * 中心線と、目盛り付きの横線（中心線に直角）。M：映像の座標 → 画面の座標。full でなければ中心線だけ
+ * 横線と目盛りの間隔はフレームガイドの楕円の大きさから決める（目盛りの間隔は楕円の横の半径の 1/10）。
+ * 横線は等間隔に何本も引き、目の高さに合わせて動かさなくても、近くの線で左右の高さと中心線からの距離を比べられるようにする
+ */
 function drawGuides(M, fw, fh, angle, full = true) {
   const ax = G.axis(fw, fh, angle);
   const P = (a, s) => G.ap(M, G.fromAxis(ax, a, s));
   const L = Math.max(fw, fh);
   line(P(-L, 0), P(L, 0), 'rgba(143,211,255,.95)', 1.5, [8, 6]);
   if (!full) return;
-  const g = guideNow();
-  const eye = (g.eyeY - 0.5) * fh, sp = g.spacing * fw, tick = fh * 0.022;
-  line(P(eye, -fw * 0.42), P(eye, fw * 0.42), 'rgba(255,211,107,.9)', 1.2, [4, 4]);
-  for (const s of [-1, 1]) line(P(eye - tick, s * sp / 2), P(eye + tick, s * sp / 2), '#ffd36b', 3);
-  // 鼻先・口の中央が中心線上に来ることを示す目安
-  const k = G.scaleOf(M);
-  ctx.strokeStyle = 'rgba(143,211,255,.95)'; ctx.lineWidth = 1.5 * DPR();
-  const n = P(eye + sp * 0.95, 0);
-  ctx.beginPath(); ctx.arc(n[0], n[1], Math.max(4 * DPR(), sp * 0.09 * k), 0, Math.PI * 2); ctx.stroke();
-  for (const s of [-1, 1]) line(P(eye + sp * 1.65, s * sp * 0.22), P(eye + sp * 1.65, s * sp * 0.08), 'rgba(143,211,255,.95)', 2);
+  const ry = (settings.frame * fh) / 2, rx = ry * IM.FRAME_ASPECT;
+  const step = rx / GRID_TICKS, half = rx * 1.2, rows = Math.floor(ry * 1.1 / (step * GRID_ROW));
+  for (let r = -rows; r <= rows; r++) {
+    const a = r * step * GRID_ROW;
+    // 真ん中の横線（フレームガイドの楕円の中心を通る線）は色を変え、基準の線として見分けやすくする
+    const mid = r === 0, rgb = mid ? '255,128,170' : '255,211,107';
+    line(P(a, -half), P(a, half), `rgba(${rgb},${mid ? 0.85 : 0.45})`, mid ? 1.5 : 1);
+    // 目盛り：中心線から1目盛りごとに短い線、5目盛りごとに長い線
+    for (let k = 1; k * step <= half; k++) {
+      const t = (k % 5 === 0 ? 0.45 : 0.22) * step;
+      for (const s of [-1, 1]) line(P(a - t, s * k * step), P(a + t, s * k * step), `rgba(${rgb},${mid ? 0.95 : 0.75})`, k % 5 === 0 ? 1.6 : 1);
+    }
+  }
 }
+/** 目盛りの数（楕円の横の半径あたり）と、横線の間隔（目盛りの数） */
+const GRID_TICKS = 10, GRID_ROW = 3;
 function drawFrameGuide(M, fw, fh, angle) {
   const c = G.ap(M, [fw / 2, fh / 2]), k = G.scaleOf(M);
   const ry = (settings.frame * fh) / 2, rx = ry * IM.FRAME_ASPECT;
@@ -279,6 +275,9 @@ function drawLive() {
     // 顔位置設定：ピンチで拡大した表示。映像とガイドを同じ変換で描き、ガイドが映像に追従する
     const fv = clampFaceView();
     V = G.mul([fv.s, 0, 0, fv.s, fv.x, fv.y], V);
+  } else if (S.screen === 'home' && S.flip) {
+    // 左右反転：映像と補助の表示をまとめて、画面の中央で左右に反転する
+    V = G.mul([-1, 0, 0, 1, W, 0], V);
   }
   ctx.setTransform(...V);
   ctx.drawImage(v, c.sx, c.sy, c.sw, c.sh, 0, 0, fw, fh);
@@ -342,7 +341,7 @@ function runChecks(c) {
   const s = Math.min(1, 400 / Math.max(c.sw, c.sh));
   checkCanvas.width = Math.round(c.sw * s); checkCanvas.height = Math.round(c.sh * s);
   checkCanvas.getContext('2d', { willReadFrequently: true }).drawImage(cam.video, c.sx, c.sy, c.sw, c.sh, 0, 0, checkCanvas.width, checkCanvas.height);
-  S.checks.light = a.light ? IM.lightBalance(checkCanvas, checkCanvas.width, checkCanvas.height, { angle: settings.angle, ...guideNow() }) : 0;
+  S.checks.light = a.light ? IM.lightBalance(checkCanvas, checkCanvas.width, checkCanvas.height, { angle: settings.angle, frame: settings.frame }) : 0;
   S.checks.sharp = a.sharp ? IM.sharpness(checkCanvas, frameRect(checkCanvas.width, checkCanvas.height)) : null;
   renderChips();
 }
@@ -350,7 +349,10 @@ function renderChips() {
   const chips = [];
   if (S.screen === 'home') {
     const a = settings.assist, l = S.checks.light;
-    if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${l > 0 ? 'ドールの右側（画面左側）' : 'ドールの左側（画面右側）'}が暗めです</span>`);
+    if (S.flip) chips.push('<span class="pill bad">左右反転中（画面の左右がふだんと逆です）</span>');
+    // 左右反転中は、ドールの右側が画面の右側に写る
+    const scr = (s) => `画面${(s === 'R') !== S.flip ? '左' : '右'}側`;
+    if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${l > 0 ? `ドールの右側（${scr('R')}）` : `ドールの左側（${scr('L')}）`}が暗めです</span>`);
     if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
   if (S.screen === 'face') chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
@@ -407,10 +409,13 @@ function updateHome() {
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
+  $('#btn-flip').setAttribute('aria-pressed', String(S.flip));
+  $('#btn-flip').textContent = S.flip ? '元に戻す' : '反転する';
   $('#home-hint').textContent = cam.wakeSupported ? '補助の ON / OFF は設定から' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
   renderChips();
 }
 $('#btn-edge').addEventListener('click', () => { settings.assist.edge = !settings.assist.edge; save(); updateHome(); });
+$('#btn-flip').addEventListener('click', () => { S.flip = !S.flip; updateHome(); });
 $('#edge-alpha').addEventListener('input', (e) => { settings.edgeAlpha = +e.target.value; save(); updateHome(); });
 $('#btn-mirror').addEventListener('click', () => openMirror());
 $('#btn-sim').addEventListener('click', () => openSim());
@@ -472,9 +477,6 @@ $$('[data-angle]').forEach((b) => b.addEventListener('click', () => {
   settings.angle = Math.round(G.clamp(settings.angle + +b.dataset.angle, -10, 10) * 10) / 10; save(); updateFace();
 }));
 $('#btn-angle0').addEventListener('click', () => { settings.angle = 0; save(); updateFace(); });
-// 拡大して表示している間は、1回で動く量を表示の倍率に合わせて小さくする（画面上で同じくらい動くように）
-$$('[data-eye]').forEach((b) => b.addEventListener('click', () => { const g = guideNow(); setGuide(G.clamp(g.eyeY + +b.dataset.eye / S.face.view.s, 0.15, 0.85), g.spacing); }));
-$$('[data-sp]').forEach((b) => b.addEventListener('click', () => { const g = guideNow(); setGuide(g.eyeY, G.clamp(g.spacing + +b.dataset.sp / S.face.view.s, 0.02, 0.45)); }));
 
 // ---------------- 顔位置設定の表示（拡大・移動） ----------------
 const FACE_ZOOM_MAX = 8;
