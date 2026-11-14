@@ -52,6 +52,7 @@ function show(s) {
   });
   $('#bar-title').textContent = TITLES[s] || '';
   if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら撮影をやめる
+  S.dirty = true;
   S.mode = null;
   if (s === 'face') { S.face.angle0 = settings.angle; S.startupNote = false; updateFace(); }
   zoomOpen = false;
@@ -106,6 +107,7 @@ document.addEventListener('click', (e) => {
 // ======================================================================
 cam.onState = () => { updateCamMsg(); updateZoomButtons(); };
 cam.zoom = settings.zoom;
+cam.fps = settings.fps;
 
 function updateCamMsg() {
   const m = $('#cam-msg');
@@ -309,14 +311,24 @@ function fitCanvas() {
   const w = Math.max(1, Math.round(r.width * DPR())), h = Math.max(1, Math.round(r.height * DPR()));
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; S.dirty = true; if (S.view?.auto) fitView(); }
 }
+/**
+ * 描画のループ。端末が熱くならないよう、描き直すのは必要なときだけにする。
+ * カメラの画面では、新しいコマが届いたときと、操作（S.dirty）があったときだけ。シミュレーションでは操作があったときだけ
+ */
+let lastFrame = null;
 function loop() {
   requestAnimationFrame(loop);
   if ($('#stage').hidden) return;
   fitCanvas();
   updateZoomButtons();
   if (S.screen === 'sim') { if (S.dirty && S.sim) { S.dirty = false; drawSim(); } return; }
+  const f = cam.ready ? cam.frameKey() : null;
+  if (f === lastFrame && !S.dirty) return;
+  lastFrame = f; S.dirty = false;
   drawLive();
 }
+// 操作があったら描き直す（ピンチ・ボタン・スライダー等で表示が変わるため。新しいコマを待つと、コマ数が少ないときに遅れて見える）
+['pointerdown', 'pointermove', 'pointerup', 'wheel', 'click', 'input', 'change', 'keydown'].forEach((t) => document.addEventListener(t, () => { S.dirty = true; }, { capture: true, passive: true }));
 
 /** 線を引く（画面の座標） */
 function line(a, b, color, w = 1.5, dash = null) {
@@ -1097,11 +1109,14 @@ function updateSettings() {
   $$('[data-assist]').forEach((el) => (el.checked = !!settings.assist[el.dataset.assist]));
   $('#s-frame').value = Math.round(settings.frame * 100);
   $('#s-delay').value = String(settings.delay);
-  $('#s-camera').textContent = cam.ready ? cam.label || '（名前なし）' : 'カメラを起動していません';
+  $('#s-fps').value = String(settings.fps);
+  const fps = cam.ready && cam.actualFps ? ` · ${cam.actualFps} コマ/秒` : '';
+  $('#s-camera').textContent = cam.ready ? `${cam.label || '（名前なし）'}${fps}` : 'カメラを起動していません';
 }
 $$('[data-assist]').forEach((el) => el.addEventListener('change', () => { settings.assist[el.dataset.assist] = el.checked; save(); }));
 $('#s-frame').addEventListener('input', (e) => { settings.frame = +e.target.value / 100; save(); });
 $('#s-delay').addEventListener('change', (e) => { settings.delay = +e.target.value; save(); });
+$('#s-fps').addEventListener('change', async (e) => { settings.fps = +e.target.value; save(); await cam.setFps(settings.fps); updateSettings(); });
 
 // ======================================================================
 // このアプリについて・版と更新

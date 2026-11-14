@@ -8,6 +8,8 @@ const WORK_MAX = 4096;    // 撮影画像の長辺の上限（端末の Canvas �
 const DEMO = new URLSearchParams(location.search).has('demo');
 // 4K を求め、端末が出せる最大に近い解像度にする（多くの端末で最大 4K 程度）
 const SIZE = { width: { ideal: 3840 }, height: { ideal: 2160 } };
+// 解像度と、1秒あたりのコマ数（少ないほど端末が熱くなりにくい）。applyConstraints は指定を丸ごと置き換えるため、毎回両方を渡す
+const videoSpec = (fps) => ({ ...SIZE, frameRate: { ideal: fps } });
 // 複数のレンズをまとめたカメラ（iPhone の「背面デュアルカメラ」「背面トリプルカメラ」等）の名前
 const MULTI_LENS = /dual|triple|デュアル|トリプル/i;
 // 背面の、レンズ1つのカメラのうち、標準（広角）でないものの名前
@@ -20,6 +22,10 @@ export const cam = {
   /** カメラのズーム制御に対応している場合の範囲 { min, max }。対応していなければ null（デジタルズーム） */
   hw: null,
   zoom: 1,
+  /** カメラに求める1秒あたりのコマ数（アプリの設定） */
+  fps: 15,
+  /** 描いた映像のコマの数（新しいコマが届いたときだけ画面を描き直すために使う） */
+  frames: 0,
   /** 使っているカメラの名前（設定画面に表示する。端末が名前を返さない場合は空） */
   label: '',
   /** 'idle' | 'starting' | 'live' | 'denied' | 'nocam' | 'error' */
@@ -28,7 +34,28 @@ export const cam = {
   wakeLock: null,
   onState: () => {},
 
-  init(video) { this.video = video; },
+  init(video) {
+    this.video = video;
+    // 新しいコマが表示されるたびに数える。対応していないブラウザでは、映像の再生位置の変化で判断する（frameKey）
+    if (video.requestVideoFrameCallback) {
+      const tick = () => { this.frames++; video.requestVideoFrameCallback(tick); };
+      video.requestVideoFrameCallback(tick);
+    }
+  },
+
+  /** 映像のコマを表す値。前回と同じなら、新しいコマはまだ届いていない */
+  frameKey() { return this.video.requestVideoFrameCallback ? this.frames : this.video.currentTime; },
+
+  /** 1秒あたりのコマ数を変える（カメラが対応していなければ、カメラの決めたコマ数のまま） */
+  async setFps(fps) {
+    this.fps = fps;
+    if (!this.track || this.label === 'デモ映像') return;
+    try { await this.track.applyConstraints(videoSpec(fps)); } catch { /* 何もしない */ }
+    await this.setZoom(this.zoom); // 指定を置き換えたため、ズームもかけ直す
+  },
+
+  /** 今のコマ数（カメラが返した値。返さない端末では null） */
+  get actualFps() { const f = this.track?.getSettings?.().frameRate; return f ? Math.round(f) : null; },
 
   async start() {
     if (this.state === 'starting' || this.state === 'live') return;
@@ -36,7 +63,7 @@ export const cam = {
     if (!navigator.mediaDevices?.getUserMedia) { this.setState('nocam', 'このブラウザはカメラに対応していません'); return; }
     this.setState('starting');
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, ...SIZE } });
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, ...videoSpec(this.fps) } });
       await this.useSingleLens();
     } catch (e) {
       const name = e?.name || '';
@@ -74,7 +101,7 @@ export const cam = {
     } catch { return; }
     if (!id || id === cur.getSettings?.().deviceId) return;
     let s;
-    try { s = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: { exact: id }, ...SIZE } }); } catch { return; /* 替えられなければ、まとめたカメラのまま使う */ }
+    try { s = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: { exact: id }, ...videoSpec(this.fps) } }); } catch { return; /* 替えられなければ、まとめたカメラのまま使う */ }
     this.stream.getTracks().forEach((t) => t.stop());
     this.stream = s;
   },
