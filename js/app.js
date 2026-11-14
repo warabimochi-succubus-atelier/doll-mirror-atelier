@@ -666,7 +666,7 @@ $('#btn-face-done').addEventListener('click', async () => {
     S.face.angle0 = settings.angle;
     if (S.sim && Math.abs(S.sim.cap.angle - settings.angle) > 0.001) S.sim.setAngle(settings.angle);
     S.headMoved = false;
-    toast('撮影しました。ミラーの「撮影画像」で使えます');
+    toast('撮影しました。ミラーの「撮影画像」と、仮置きで使えます');
   }
   back();
 });
@@ -771,30 +771,45 @@ $('#btn-m-sim').addEventListener('click', () => openSim());
 // ======================================================================
 // 仮置き
 // ======================================================================
+/**
+ * 仮置きを開く。元にする画像は、アプリで1つの撮影画像（顔位置設定の「撮影して完了」・ミラーの「今の映像を撮影」で撮ったもの）。
+ * 撮影画像が古い場合に備え、今の映像を撮影して始めることも選べる（そのとき撮った画像も撮影画像にする）。
+ * 仮置きは始めたときの画像を使い続ける（後で撮影画像を撮り直しても、パーツの位置がずれないように変えない）
+ */
 async function openSim() {
-  if (S.sim && S.sim.hasContent) {
-    const sim = S.sim, nParts = sim.parts.length;
-    const r = await choose({
+  const sim = S.sim, cont = !!(sim && sim.hasContent), cap0 = S.mirrorCap;
+  let r = 'shoot';
+  if (cont || cap0) {
+    const choices = [];
+    if (cont) choices.push({ value: 'continue', label: '続きから', desc: `前回の仮置き（パーツ ${sim.parts.length}つ、${hhmm(sim.cap.time)} の画像）と、取り消しの履歴をそのまま使います。` });
+    if (cap0) choices.push({ value: 'cap', label: `${hhmm(cap0.time)} の撮影画像で始める`, desc: '撮影せずに、今ある撮影画像で始めます。その後に進めたメイクは入っていません。' });
+    choices.push({ value: 'shoot', label: '今の映像を撮影して始める', desc: 'メイクを進めた後はこちら。撮影した画像は、ミラーの撮影画像にもなります。' });
+    r = await choose({
       title: '仮置き',
-      html: `<p>前回の仮置き（パーツ ${nParts}つ、${hhmm(sim.cap.time)} に撮影）があります。</p>`,
-      choices: [
-        { value: 'continue', label: '続きから', desc: '前回の撮影画像と、パーツ移動、取り消しの履歴をそのまま使います。' },
-        { value: 'new', label: '撮り直して新しく始める', desc: '今の映像を撮影します。前回のパーツ移動と履歴は消えます。' },
-      ],
+      html: cont ? '<p>新しく始めると、前回のパーツ移動と取り消しの履歴は消えます。</p>' : '',
+      choices,
     });
     if (r === 'continue') { go('sim'); return; }
-    if (r !== 'new') return;
-    const ok = await choose({
-      title: '前回の仮置きを消しますか',
-      html: '<p>パーツ移動と、取り消しの履歴が消えます。元に戻せません。</p>',
-      choices: [{ value: 'yes', label: '消して撮り直す', danger: true }],
-    });
-    if (ok !== 'yes') return;
+    if (r !== 'cap' && r !== 'shoot') return;
+    if (cont) {
+      const ok = await choose({
+        title: '前回の仮置きを消しますか',
+        html: '<p>パーツ移動と、取り消しの履歴が消えます。元に戻せません。</p>',
+        choices: [{ value: 'yes', label: '消して新しく始める', danger: true }],
+      });
+      if (ok !== 'yes') return;
+    }
   }
   if (S.screen !== 'home' && S.screen !== 'mirror') return;
-  const cap = await capture();
-  if (!cap) return;
-  S.sim = new Sim(cap);
+  let cap = cap0;
+  if (r === 'shoot') {
+    cap = await capture();
+    if (!cap) return;
+    // どこで撮っても撮影画像は1つ（ミラーの撮影画像にもする）
+    S.mirrorCap = cap; S.headMoved = false;
+  }
+  // 中心線の角度は仮置きごとに持つ（撮影画像の角度を書き換えないよう、写しを渡す。画像そのものは共用する）
+  S.sim = new Sim({ ...cap, guides: { ...cap.guides } });
   S.view = null;
   go('sim');
 }
