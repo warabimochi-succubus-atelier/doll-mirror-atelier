@@ -63,8 +63,20 @@ function show(s) {
   updateZoomButtons();
   $('#count').hidden = true;
 }
+/**
+ * 画面を移る。移る先が戻るの履歴に既にある場合（ミラー ⇄ シミュレーションの行き来など）は、新しく積まずに、
+ * その画面まで履歴を巻き戻す（何度行き来しても、戻るでホームまで少ない回数で戻れるように）
+ */
 function go(s) {
   if (s === S.screen) return;
+  const i = stack.lastIndexOf(s);
+  if (i >= 0) {
+    const k = stack.length - i; // 巻き戻すブラウザの履歴の数（今の画面の分を含む）
+    stack.length = i;
+    popSilently = true; history.go(-k);
+    show(s);
+    return;
+  }
   stack.push(S.screen);
   history.pushState({ s }, '');
   show(s);
