@@ -103,6 +103,10 @@
             <span class="hint grow" id="edge-hint" style="margin:0"></span>
             <button class="btn btn-ghost btn-s" id="btn-edge" aria-pressed="false">重ねる</button>
           </div>
+          <div class="row" id="edge-color-row" hidden>
+            <span class="lbl">線の色</span>
+            <div class="row swatches" id="home-colors" style="gap:6px"></div>
+          </div>
           <div class="row" id="edge-alpha-row" hidden>
             <span class="lbl">透明度</span>
             <input type="range" min="0" max="100" id="edge-alpha" aria-label="輪郭表示の透明度">
@@ -258,21 +262,13 @@
           <div class="set"><span class="grow">楕円の大きさ</span><input type="range" min="25" max="95" id="s-frame" style="width:120px" aria-label="楕円の大きさ"></div>
           <label class="set"><span class="grow">照明の左右差チェック<small>額の明るさで判定します（目安）</small></span><input type="checkbox" class="switch" data-assist="light"></label>
           <label class="set"><span class="grow">ピンぼけ・ブレのチェック<small>撮影時のチェックは、この設定に関わらず行います</small></span><input type="checkbox" class="switch" data-assist="sharp"></label>
-          <label class="set"><span class="grow">中心線の表示<small>中心線と合わせ用ガイド</small></span><input type="checkbox" class="switch" data-assist="center"></label>
-          <label class="set"><span class="grow">前回の撮影画像の輪郭表示</span><input type="checkbox" class="switch" data-assist="edge"></label>
+          <label class="set"><span class="grow">中心線の表示<small>中心線と目盛り付きの横線</small></span><input type="checkbox" class="switch" data-assist="center"></label>
         </div>
+        <!-- ズーム倍率・輪郭表示・ミラーの表示の設定は、使う画面（ホーム・ミラー）で変える（設定画面には置かない） -->
         <div class="card">
-          <h2>カメラと撮影</h2>
-          <div class="set"><span class="grow">ズーム倍率<small id="s-zoom-note"></small></span><select id="s-zoom" aria-label="ズーム倍率"></select></div>
+          <h2>撮影</h2>
           <div class="set"><span class="grow">撮影時の待ち時間<small>ボタンを押したときの揺れが収まるまで待ちます</small></span>
             <select id="s-delay" aria-label="待ち時間"><option value="0">なし</option><option value="1">1秒</option><option value="2">2秒</option><option value="3">3秒</option><option value="5">5秒</option></select></div>
-        </div>
-        <div class="card">
-          <h2>表示</h2>
-          <div class="set"><span class="grow">輪郭表示の透明度</span><input type="range" min="0" max="100" id="s-edge-alpha" style="width:100px" aria-label="輪郭表示の透明度"><span class="val mono" id="s-edge-alpha-v"></span></div>
-          <div class="set"><span class="grow">ミラーの透明度</span><input type="range" min="0" max="100" id="s-mirror-alpha" style="width:100px" aria-label="ミラーの透明度"><span class="val mono" id="s-mirror-alpha-v"></span></div>
-          <div class="set"><span class="grow">ミラーの表示方法</span><select id="s-mirror-mode" aria-label="ミラーの表示方法"><option value="img">画像</option><option value="edge">輪郭のみ</option></select></div>
-          <div class="set"><span class="grow">輪郭の線の色</span><span class="row swatches" id="s-colors" style="gap:4px"></span></div>
         </div>
         <div class="card">
           <h2>設置方法</h2>

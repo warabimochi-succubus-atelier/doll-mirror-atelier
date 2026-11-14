@@ -495,6 +495,9 @@ function updateHome() {
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
   $('#edge-hint').textContent = has ? `前回の撮影画像（${hhmm(S.lastCap.time)}）` : '前回の撮影画像がありません';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
+  // 線の色はミラーの「輪郭のみ」と共通
+  $('#edge-color-row').hidden = !(has && settings.assist.edge);
+  renderSwatches($('#home-colors'));
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
   $('#btn-flip').setAttribute('aria-pressed', String(S.flip));
@@ -1084,23 +1087,11 @@ before.addEventListener('contextmenu', (e) => e.preventDefault());
 function updateSettings() {
   $$('[data-assist]').forEach((el) => (el.checked = !!settings.assist[el.dataset.assist]));
   $('#s-frame').value = Math.round(settings.frame * 100);
-  const zs = cam.ready ? zoomChoices() : [1, 1.5, 2, 3, 4];
-  if (!zs.some((z) => Math.abs(z - settings.zoom) < 0.01)) zs.push(settings.zoom);
-  $('#s-zoom').innerHTML = zs.sort((a, b) => a - b).map((z) => `<option value="${z}" ${Math.abs(z - settings.zoom) < 0.01 ? 'selected' : ''}>${z}×</option>`).join('');
-  $('#s-zoom-note').textContent = !cam.ready ? '' : cam.hw ? 'カメラのズームを使います' : 'このブラウザはデジタルズームです（拡大するほど画質が下がります）';
   $('#s-delay').value = String(settings.delay);
-  $('#s-edge-alpha').value = settings.edgeAlpha; $('#s-edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
-  $('#s-mirror-alpha').value = settings.mirrorAlpha; $('#s-mirror-alpha-v').textContent = `${settings.mirrorAlpha}%`;
-  $('#s-mirror-mode').value = settings.mirrorMode;
-  renderSwatches($('#s-colors'));
 }
 $$('[data-assist]').forEach((el) => el.addEventListener('change', () => { settings.assist[el.dataset.assist] = el.checked; save(); }));
 $('#s-frame').addEventListener('input', (e) => { settings.frame = +e.target.value / 100; save(); });
-$('#s-zoom').addEventListener('change', (e) => setZoom(+e.target.value));
 $('#s-delay').addEventListener('change', (e) => { settings.delay = +e.target.value; save(); });
-$('#s-edge-alpha').addEventListener('input', (e) => { settings.edgeAlpha = +e.target.value; save(); updateSettings(); });
-$('#s-mirror-alpha').addEventListener('input', (e) => { settings.mirrorAlpha = +e.target.value; save(); updateSettings(); });
-$('#s-mirror-mode').addEventListener('change', (e) => { settings.mirrorMode = e.target.value; save(); });
 
 // ======================================================================
 // このアプリについて・版と更新
