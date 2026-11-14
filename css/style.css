@@ -188,8 +188,6 @@ input[type=range] { accent-color: var(--accent); width: 100%; min-width: 0; }
 .fine { display: flex; gap: 4px; flex-wrap: wrap; }
 .fine .btn { padding: 4px 8px; font-size: 12px; min-width: 42px; }
 .divider { height: 1px; background: var(--line); margin: 10px -14px; }
-.swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; flex: none; }
-.swatch.on { box-shadow: 0 0 0 2px var(--accent); }
 select { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; background: var(--surface); max-width: 100%; }
 
 /* ---- シミュレーション ---- */

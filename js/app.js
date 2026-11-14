@@ -5,7 +5,7 @@
 import * as G from './geom.js';
 import * as IM from './imaging.js';
 import { cam } from './camera.js';
-import { settings, save, LINE_COLORS } from './settings.js';
+import { settings, save } from './settings.js';
 import { Sim, copySide } from './sim.js';
 import { $, $$, esc, toast, choose } from './ui.js';
 /* global APP_VERSION */
@@ -33,6 +33,13 @@ const S = {
 const edgeCache = new WeakMap();
 const tintCache = {};
 const edgesOf = (cv) => { let m = edgeCache.get(cv); if (!m) { m = IM.edgeMask(cv); edgeCache.set(cv, m); } return m; };
+// 輪郭の線の色は、撮影画像ごとにヘッドの色から自動で決める（ホームの輪郭表示とミラーの「輪郭のみ」で共通）
+const lineColorCache = new WeakMap();
+const lineColorOf = (cv) => {
+  let c = lineColorCache.get(cv);
+  if (!c) { c = IM.lineColorFor(cv, frameRect(cv.width, cv.height)); lineColorCache.set(cv, c); }
+  return c;
+};
 
 const cv = $('#cv'), ctx = cv.getContext('2d');
 cam.init($('#video'));
@@ -422,7 +429,7 @@ function drawCapEdges(cap, V, fw, alpha) {
   ctx.save();
   ctx.globalAlpha = 1 - alpha / 100;
   ctx.setTransform(...G.mul(V, capToFrame(cap, fw, (fw * cap.h) / cap.w)));
-  ctx.drawImage(IM.tintEdges(edgesOf(cap.canvas), settings.lineColor, tintCache), 0, 0, cap.w, cap.h);
+  ctx.drawImage(IM.tintEdges(edgesOf(cap.canvas), lineColorOf(cap.canvas), tintCache), 0, 0, cap.w, cap.h);
   ctx.restore();
 }
 
@@ -443,7 +450,7 @@ function drawMirror(V, fw, fh) {
   ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.closePath(); ctx.clip();
   ctx.globalAlpha = 1 - settings.mirrorAlpha / 100;
   ctx.setTransform(...G.mul(Vc, adj, G.reflectM(ax)));
-  if (settings.mirrorMode === 'edge') ctx.drawImage(IM.tintEdges(edgesOf(img), settings.lineColor, tintCache), 0, 0, cap.w, cap.h);
+  if (settings.mirrorMode === 'edge') ctx.drawImage(IM.tintEdges(edgesOf(img), lineColorOf(cap.canvas), tintCache), 0, 0, cap.w, cap.h);
   else ctx.drawImage(img, 0, 0);
   ctx.restore();
   if (settings.assist.center) drawGuides(Vc, cap.w, cap.h, cap.angle, false);
@@ -532,9 +539,6 @@ function updateHome() {
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
   $('#edge-hint').textContent = has ? `前回の撮影画像（${hhmm(S.lastCap.time)}）` : '前回の撮影画像がありません';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
-  // 線の色はミラーの「輪郭のみ」と共通
-  $('#edge-color-row').hidden = !(has && settings.assist.edge);
-  renderSwatches($('#home-colors'));
   $('#edge-alpha').value = settings.edgeAlpha;
   $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
   $('#home-hint').textContent = cam.wakeSupported ? '補助の ON / OFF は設定から' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
@@ -660,8 +664,6 @@ function updateMirror() {
   setSeg('#m-which', S.mirror.which);
   $('#m-which [data-v=after]').disabled = !S.sim;
   setSeg('#m-mode', settings.mirrorMode);
-  $('#m-colors-row').hidden = settings.mirrorMode !== 'edge';
-  renderSwatches($('#m-colors'));
   $('#m-alpha').value = settings.mirrorAlpha;
   $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`;
   const note = $('#m-after-note');
@@ -698,16 +700,6 @@ $('#btn-retake').addEventListener('click', async () => {
   updateMirror();
 });
 $('#btn-m-sim').addEventListener('click', () => openSim());
-
-function renderSwatches(el) {
-  el.innerHTML = LINE_COLORS.map(([c, n]) => `<button class="swatch ${c === settings.lineColor ? 'on' : ''}" style="background:${c}" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join('');
-}
-document.addEventListener('click', (e) => {
-  const sw = e.target.closest('.swatch[data-c]');
-  if (!sw) return;
-  settings.lineColor = sw.dataset.c; save();
-  $$('.swatches').forEach(renderSwatches);
-});
 
 // ======================================================================
 // シミュレーション

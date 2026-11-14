@@ -15,21 +15,18 @@ export const DEFAULTS = {
   edgeAlpha: 40,   // 前回の撮影画像の輪郭表示の透明度（%。0：不透明、100：完全に透明）
   mirrorAlpha: 0,  // ミラーの透明度（%）
   mirrorMode: 'img', // ミラーの表示方法：'img' 画像 / 'edge' 輪郭のみ
-  lineColor: '#5cf2ff', // 輪郭の線の色
   // 案内の表示済み
   firstRunDone: false,
   camIntroDone: false,
 };
-
-export const LINE_COLORS = [
-  ['#5cf2ff', '水色'], ['#ff5ca8', 'ピンク'], ['#fff200', '黄'], ['#3dff6e', '緑'], ['#ffffff', '白'], ['#222222', '黒'],
-];
 
 function load() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || '{}');
     // 古い版の目の高さの線・目頭マークの設定は使わない
     delete v.eyeY; delete v.spacing; delete v.guideZoom;
+    // 輪郭の線の色は自動で決めるようになったため使わない
+    delete v.lineColor;
     return { ...structuredClone(DEFAULTS), ...v, assist: { ...DEFAULTS.assist, ...(v.assist || {}) } };
   } catch {
     return structuredClone(DEFAULTS);

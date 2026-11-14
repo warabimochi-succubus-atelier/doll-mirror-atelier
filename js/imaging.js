@@ -86,6 +86,44 @@ export function tintEdges(mask, color, cache) {
   return c;
 }
 
+// ---------------- 輪郭の線の色（自動） ----------------
+
+// 基本の線の色（水色）。ヘッドの色が水色に近く見分けにくい場合だけ、緑・ピンクのうち見分けやすいほうにする
+export const LINE_BASE = '#5cf2ff';
+const LINE_FALLBACK = ['#3dff6e', '#ff5ca8'];
+// 水色をやめる色の差の目安（CIELAB の色差 ΔE。ふつうの肌色では 45 前後以上になる）
+const LINE_MIN_DE = 40;
+
+/** sRGB（0〜255）→ CIELAB */
+function lab([r, g, b]) {
+  const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const R = lin(r), G = lin(g), B = lin(b);
+  const f = (t) => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  const x = f((0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047);
+  const y = f(0.2126 * R + 0.7152 * G + 0.0722 * B);
+  const z = f((0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const deltaE = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+/**
+ * 撮影画像のヘッドの範囲（rect。フレームガイドの楕円を囲む矩形）の平均の色から、輪郭の線の色を決める。
+ * 基本は水色。ヘッドの色との差が小さい（水色・青系の肌など）場合は、緑・ピンクのうち差の大きいほう
+ */
+export function lineColorFor(src, rect) {
+  const s = Math.min(1, 64 / Math.max(rect.w, rect.h));
+  const w = Math.max(1, Math.round(rect.w * s)), h = Math.max(1, Math.round(rect.h * s));
+  const c = canvas(w, h), x = ctx2d(c, { willReadFrequently: true });
+  x.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data;
+  const sum = [0, 0, 0];
+  for (let i = 0; i < d.length; i += 4) { sum[0] += d[i]; sum[1] += d[i + 1]; sum[2] += d[i + 2]; }
+  const n = d.length / 4, head = lab(sum.map((v) => v / n));
+  if (deltaE(lab(hexRgb(LINE_BASE)), head) >= LINE_MIN_DE) return LINE_BASE;
+  return LINE_FALLBACK.reduce((best, col) => (deltaE(lab(hexRgb(col)), head) > deltaE(lab(hexRgb(best)), head) ? col : best));
+}
+
 // ---------------- 鮮明さ（ピンぼけ・ブレ）・照明の左右差 ----------------
 
 // 鮮明さの基準。これを下回るとピンぼけ・ブレとして知らせる（目安。実機での試作で見直す）
