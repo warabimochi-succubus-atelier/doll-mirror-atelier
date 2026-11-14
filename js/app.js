@@ -20,10 +20,11 @@ const S = {
   mirrorCap: null,   // ミラーの撮影画像 { canvas, w, h, angle, guides, time }
   sim: null,         // 仮置き
   lastCap: null,     // 前回の撮影画像（輪郭表示用。ミラー・仮置きのどちらかと共用）
-  headMoved: false,  // ヘッドが動いた可能性がある（ミラーで撮り直しを案内する）
+  headMoved: false,  // ヘッドが動いた可能性がある（ミラーで、顔位置設定で元の位置に戻すよう案内する）
   startupNote: true, // 起動時の「ヘッドが中心線に合っているか確認してください」
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。ボタンを押している間だけ。左右の取り違えを防ぐため）
-  mirror: { basis: 'left', which: 'before', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
+  // which：表示する画像。ライブから始める（開くたびに撮影して待たせない。止めて見たいときに撮影する）
+  mirror: { basis: 'left', which: 'live', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 撮影（待ち時間）中の番号。画面を離れたら取りやめる
   // 仮置き画面
@@ -402,11 +403,12 @@ function drawLive() {
   const a = settings.assist;
 
   if (S.screen === 'home') {
-    if (a.edge && S.lastCap) drawCapEdges(S.lastCap, V, fw, settings.edgeAlpha);
     if (a.frame) drawFrameGuide(V, fw, fh, settings.angle);
     if (a.center) drawGuides(V, fw, fh, settings.angle);
     runChecks(c);
   } else if (S.screen === 'face') {
+    // 元の位置：前回の撮影画像の輪郭（ガイドの下に描く）
+    if (a.edge && S.lastCap) drawCapEdges(S.lastCap, V, fw, settings.edgeAlpha);
     drawFrameGuide(V, fw, fh, settings.angle);
     drawGuides(V, fw, fh, settings.angle);
   } else if (S.screen === 'mirror') {
@@ -491,14 +493,16 @@ function renderChips() {
   if (S.screen === 'home') {
     const a = settings.assist, l = S.checks.light;
     if (S.flip) chips.push('<span class="pill bad">左右反転中（画面の左右がふだんと逆です）</span>');
-    // 重ねたまま忘れないよう、重ねている間は何をする表示かを出す
-    if (a.edge && S.lastCap) chips.push('<span class="pill">輪郭にヘッドを合わせてください</span>');
     // 左右反転中は、表示の左右が入れ替わるため、暗い側も表示の上の位置で示す
     // l > 0：画面右側が明るい（画面左側が暗い）
     if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${(l > 0) !== S.flip ? '左' : '右'}側が暗めです</span>`);
     if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
-  if (S.screen === 'face') chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
+  if (S.screen === 'face') {
+    chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
+    // 重ねたまま忘れないよう、重ねている間は何をする表示かを出す
+    if (settings.assist.edge && S.lastCap) chips.push('<span class="pill">輪郭にヘッドを合わせてください</span>');
+  }
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
     const which = mirrorWhich();
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
@@ -535,8 +539,8 @@ function updateBanner() {
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   } else if (S.screen === 'mirror' && S.headMoved && mirrorWhich() !== 'live' && (S.mirrorCap || S.sim)) {
-    t.textContent = 'ヘッドの位置が変わっている場合は撮り直してください（表示方法「輪郭のみ」で重なりを確かめられます）';
-    // ヘッドが中心線からずれている場合に、すぐ合わせ直せるようにする
+    // 撮影画像・仮置きのどちらでも、ヘッドを撮影したときの位置に戻せば重なる（撮影画像は、顔位置設定の「撮影して完了」で撮り直される）
+    t.textContent = 'ヘッドの位置が変わっている場合は、顔位置設定で撮影したときの輪郭に合わせて戻してください';
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   }
@@ -552,21 +556,10 @@ $('#banner-x').addEventListener('click', () => {
 // カメラ（ホーム）
 // ======================================================================
 function updateHome() {
-  const has = !!S.lastCap;
-  $('#btn-edge').disabled = !has;
-  $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
-  $('#edge-hint').textContent = has
-    ? `ヘッドを動かした後、${hhmm(S.lastCap.time)} に撮影したときの輪郭に合わせて戻します`
-    : 'ミラーか仮置きで撮影すると使えます';
-  $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
-  $('#edge-alpha').value = settings.edgeAlpha;
-  $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
   $('#home-hint').textContent = cam.wakeSupported ? '補助の ON / OFF は設定から' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
   renderChips();
 }
-$('#btn-edge').addEventListener('click', () => { settings.assist.edge = !settings.assist.edge; save(); updateHome(); });
 holdButton($('#btn-flip'), (v) => { S.flip = v; renderChips(); });
-$('#edge-alpha').addEventListener('input', (e) => { settings.edgeAlpha = +e.target.value; save(); updateHome(); });
 $('#btn-mirror').addEventListener('click', () => openMirror());
 $('#btn-sim').addEventListener('click', () => openSim());
 
@@ -620,8 +613,20 @@ setInterval(updateLevel, 120);
 // ======================================================================
 function updateFace() {
   $('#angle-v').textContent = fmtAngle(settings.angle);
+  // 元の位置（前回の撮影画像の輪郭）
+  const has = !!S.lastCap;
+  $('#btn-edge').disabled = !has;
+  $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
+  $('#edge-hint').textContent = has
+    ? `ヘッドを動かした後、${hhmm(S.lastCap.time)} に撮影したときの輪郭に合わせて戻します`
+    : '「撮影して完了」を押すと、次から使えます';
+  $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
+  $('#edge-alpha').value = settings.edgeAlpha;
+  $('#edge-alpha-v').textContent = `${settings.edgeAlpha}%`;
   renderChips();
 }
+$('#btn-edge').addEventListener('click', () => { settings.assist.edge = !settings.assist.edge; save(); updateFace(); });
+$('#edge-alpha').addEventListener('input', (e) => { settings.edgeAlpha = +e.target.value; save(); updateFace(); });
 $$('[data-angle]').forEach((b) => b.addEventListener('click', () => {
   settings.angle = Math.round(G.clamp(settings.angle + +b.dataset.angle, -10, 10) * 10) / 10; save(); updateFace();
 }));
@@ -647,11 +652,28 @@ function zoomLive(f, at) {
 }
 
 $('#btn-face-help').addEventListener('click', () => choose({ title: '合わせ方', html: $('#face-help').innerHTML, cancel: '閉じる' }));
-$('#btn-face-done').addEventListener('click', () => back());
+/**
+ * 撮影して完了：合わせ終えたヘッドを撮影し、ミラーの撮影画像（と元の位置の輪郭）にしてから戻る。
+ * 撮影せずに戻るときは「‹」。カメラが使えないときは撮影せずに戻る
+ */
+$('#btn-face-done').addEventListener('click', async () => {
+  if (cam.ready) {
+    const cap = await capture();
+    if (!cap) return; // 取りやめた（ぼやけの確認でキャンセル等）：画面に残る
+    if (S.screen !== 'face') return;
+    S.mirrorCap = cap;
+    // 撮影画像の角度は今の角度。仮置きにも今の角度を当て、ヘッドは今合わせたので案内は出さない
+    S.face.angle0 = settings.angle;
+    if (S.sim && Math.abs(S.sim.cap.angle - settings.angle) > 0.001) S.sim.setAngle(settings.angle);
+    S.headMoved = false;
+    toast('撮影しました。ミラーの「撮影画像」で使えます');
+  }
+  back();
+});
 
 /**
  * 顔位置設定を閉じる前：角度を変えた場合は、既にある撮影画像にもいつも適用する（ミラーの反転・左右コピーの位置を計算し直す）。
- * ヘッドを動かしたために角度を直した場合に備え、ミラーを開いたときに撮り直しを案内する。
+ * ヘッドを動かしたために角度を直した場合に備え、ミラーを開いたときに元の位置に戻すよう案内する（「撮影して完了」では撮り直すため案内しない）。
  * 適用するかを選ぶ確認は出さない（理由を思い出して選ぶのが難しく、角度の差は小さいため）。false なら閉じない
  */
 async function leaveFace() {
@@ -667,31 +689,31 @@ async function leaveFace() {
 // ======================================================================
 // ミラー
 // ======================================================================
-async function openMirror(which) {
+/** ミラーを開く。撮影はしない（ライブから始め、撮影画像は「今の映像を撮影」か顔位置設定の「撮影して完了」で撮る） */
+function openMirror(which) {
   if (which) S.mirror.which = which;
   go('mirror');
-  // ライブは撮影しない。撮影画像を表示するときだけ、まだ無ければ撮影する
-  if (mirrorWhich() === 'before' && !S.mirrorCap) {
-    updateMirror();
-    const cap = await capture();
-    if (!cap) { if (S.screen === 'mirror' && !S.mirrorCap) back(); return; }
-    S.mirrorCap = cap; S.headMoved = false;
-  }
   updateMirror();
+}
+/** ミラーで今の映像を撮影し、撮影画像の表示にする。撮影できなかったら false */
+async function shootMirror() {
+  const cap = await capture();
+  if (!cap || S.screen !== 'mirror') return false;
+  S.mirrorCap = cap; S.headMoved = false;
+  S.mirror.which = 'before';
+  return true;
 }
 function setSeg(sel, v) { $$(`${sel} button`).forEach((b) => b.classList.toggle('on', b.dataset.v === v)); }
 function updateMirror() {
-  if (!S.sim && S.mirror.which === 'after') S.mirror.which = 'before';
+  if (!S.sim && S.mirror.which === 'after') S.mirror.which = 'live';
+  if (!S.mirrorCap && S.mirror.which === 'before') S.mirror.which = 'live';
   setSeg('#m-basis', S.mirror.basis);
   setSeg('#m-which', S.mirror.which);
   $('#m-which [data-v=after]').disabled = !S.sim;
   const live = mirrorWhich() === 'live';
-  // ライブは「画像」だけ（輪郭をコマごとに取り出すと端末が熱くなるため）
+  // ライブは「画像」だけ（輪郭をコマごとに取り出すと端末が熱くなるため）。「輪郭のみ」を押すと撮影画像に切り替える
   setSeg('#m-mode', live ? 'img' : settings.mirrorMode);
-  $('#m-mode [data-v=edge]').disabled = live;
   $('#m-live-note').hidden = !live;
-  // ライブは撮影しないため、撮り直しは要らない
-  $('#btn-retake').hidden = live;
   $('#m-alpha').value = settings.mirrorAlpha;
   $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`;
   const note = $('#m-after-note');
@@ -714,14 +736,22 @@ $('#m-which').addEventListener('click', async (e) => {
   const b = e.target.closest('button'), v = b?.dataset.v;
   if (!v || b.disabled) return;
   if (v === 'before' && !S.mirrorCap) {
-    // ライブから撮影画像に切り替えたときは、まだ撮影画像が無ければ撮影する
-    const cap = await capture();
-    if (!cap) return;
-    S.mirrorCap = cap; S.headMoved = false;
+    // 撮影画像に切り替えたとき、まだ撮影画像が無ければ撮影する
+    if (await shootMirror()) updateMirror();
+    return;
   }
   S.mirror.which = v; updateMirror();
 });
-$('#m-mode').addEventListener('click', (e) => { const b = e.target.closest('button'), v = b?.dataset.v; if (v && !b.disabled) { settings.mirrorMode = v; save(); updateMirror(); } });
+$('#m-mode').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'), v = b?.dataset.v;
+  if (!v || b.disabled) return;
+  // ライブで「輪郭のみ」を選んだら、撮影画像に切り替える（無ければ撮影する）
+  if (v === 'edge' && mirrorWhich() === 'live') {
+    if (S.mirrorCap) S.mirror.which = 'before';
+    else if (!(await shootMirror())) return;
+  }
+  settings.mirrorMode = v; save(); updateMirror();
+});
 $('#m-alpha').addEventListener('input', (e) => { settings.mirrorAlpha = +e.target.value; save(); $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`; });
 $('#m-adj').addEventListener('click', (e) => {
   const k = e.target.closest('[data-adj]')?.dataset.adj; if (!k) return;
@@ -730,11 +760,10 @@ $('#m-adj').addEventListener('click', (e) => {
   else if (k[0] === 's') a.s = G.clamp(a.s * (1 + 0.004 * sg), 0.8, 1.25); else a.r += 0.2 * sg;
 });
 $('#m-adj0').addEventListener('click', () => { S.mirror.adj = { x: 0, y: 0, s: 1, r: 0 }; });
-$('#btn-retake').addEventListener('click', async () => {
-  const cap = await capture();
-  if (!cap) return;
-  S.mirrorCap = cap; S.headMoved = false;
-  toast('撮り直しました');
+// 今の映像を撮影：ライブ・撮影画像・仮置きのどれを表示していても、撮影して撮影画像の表示にする
+$('#btn-shot').addEventListener('click', async () => {
+  if (!(await shootMirror())) return;
+  toast('撮影しました');
   updateMirror();
 });
 $('#btn-m-sim').addEventListener('click', () => openSim());
