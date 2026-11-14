@@ -337,7 +337,7 @@ function drawGuides(M, fw, fh, angle, full = true) {
   }
 }
 /** 目盛りの数（楕円の横の半径あたり）と、横線の間隔（目盛りの数） */
-const GRID_TICKS = 10, GRID_ROW = 3;
+const GRID_TICKS = 10, GRID_ROW = 6;
 function drawFrameGuide(M, fw, fh, angle) {
   const c = G.ap(M, [fw / 2, fh / 2]), k = G.scaleOf(M);
   const ry = (settings.frame * fh) / 2, rx = ry * IM.FRAME_ASPECT;
