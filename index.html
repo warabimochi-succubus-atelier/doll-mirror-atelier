@@ -229,7 +229,10 @@
             <div class="row" style="margin-top:8px">
               <div class="seg" id="sim-tab" role="tablist"><button data-v="move" role="tab">動かす</button><button data-v="size" role="tab">大きさ</button><button data-v="makeup" role="tab">メイク</button></div>
             </div>
-            <div class="row" data-tab="move" style="margin-top:8px;align-items:flex-start">
+            <!-- タブの中身は同じ場所に重ね、選んでいないタブは見えなくするだけにする。
+                 領域の高さがいつも一番高いタブに揃い、切り替えても映像の高さが変わらない -->
+            <div class="tab-stack">
+            <div class="row" data-tab="move" style="align-items:flex-start">
               <div class="pad" aria-label="移動">
                 <span></span><button data-mv="0,-1" aria-label="上へ"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button><span></span>
                 <button data-mv="-1,0" aria-label="左へ"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><span></span><button data-mv="1,0" aria-label="右へ"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
@@ -240,18 +243,19 @@
               </div>
             </div>
             <!-- 大きさ：全体・長さ・太さをそれぞれのボタンで変える（方向の切り替えは無い）。長さ・太さはパーツの長い方向と、それに直角な方向 -->
-            <div data-tab="size" style="margin-top:8px" hidden>
+            <div data-tab="size" class="off">
               <div class="row"><span class="lbl">全体</span><div class="fine"><button class="btn" data-sc="all,-1" aria-label="全体を小さく">−</button><button class="btn" data-sc="all,1" aria-label="全体を大きく">＋</button></div><span class="hint grow" style="margin:0">形を保ったまま</span></div>
               <div class="row"><span class="lbl">長さ</span><div class="fine"><button class="btn" data-sc="len,-1" aria-label="長さを短く">−</button><button class="btn" data-sc="len,1" aria-label="長さを長く">＋</button></div><span class="hint grow" style="margin:0">パーツの長い方向</span></div>
               <div class="row"><span class="lbl">太さ</span><div class="fine"><button class="btn" data-sc="thk,-1" aria-label="太さを細く">−</button><button class="btn" data-sc="thk,1" aria-label="太さを太く">＋</button></div><span class="hint grow" style="margin:0">長さに直角な方向</span></div>
             </div>
-            <div data-tab="makeup" style="margin-top:8px" hidden>
+            <div data-tab="makeup" class="off">
               <div class="row">
                 <span class="lbl" id="origin-lbl">元のメイク</span>
                 <div class="seg" id="origin"><button data-v="keep">残す</button><button data-v="fade">薄くする</button><button data-v="erase">消す</button></div>
               </div>
               <div class="row"><span class="lbl">境界のぼかし</span><input type="range" min="0" max="40" id="feather" aria-label="境界のぼかし幅"></div>
               <div class="row"><span class="lbl">抽出の強さ</span><input type="range" min="0" max="100" id="strength" aria-label="抽出の強さ"></div>
+            </div>
             </div>
             <p class="hint" id="part-note"></p>
           </div>

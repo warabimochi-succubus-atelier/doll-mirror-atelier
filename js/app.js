@@ -1102,7 +1102,8 @@ function updateSimPanel() {
     $('#part-down').disabled = i === 0;
     setSeg('#origin', p.origin);
     setSeg('#sim-tab', S.simTab);
-    $$('#part-ctl [data-tab]').forEach((el) => { el.hidden = el.dataset.tab !== S.simTab; });
+    // hidden（場所ごと消える）ではなく見えなくするだけにし、領域の高さを一番高いタブに揃える（style.css の .tab-stack）
+    $$('#part-ctl [data-tab]').forEach((el) => { el.classList.toggle('off', el.dataset.tab !== S.simTab); });
     $('#origin-lbl').textContent = p.copy ? 'コピー先のメイク' : '元のメイク';
     $('#feather').value = p.feather;
     $('#strength').value = Math.round(p.strength * 100);

@@ -158,6 +158,11 @@ button, select, input[type="range"], label { touch-action: manipulation; }
 }
 /* 仮置きはパネルの操作が多いため、少し高くする（タブ1枚分がスクロールせずに収まるように） */
 body[data-screen="sim"] .panel { max-height: 53%; }
+/* 仮置きのタブの中身：同じ升に重ね、高さを一番高いタブに揃える（切り替えで映像の高さが変わらないように）。
+   visibility: hidden の要素はフォーカスも読み上げもされない */
+.tab-stack { display: grid; margin-top: 8px; }
+.tab-stack > [data-tab] { grid-area: 1 / 1; margin: 0; }
+.tab-stack > [data-tab].off { visibility: hidden; }
 .row { display: flex; align-items: center; gap: 8px; }
 .row + .row { margin-top: 8px; }
 .row.wrap { flex-wrap: wrap; }
