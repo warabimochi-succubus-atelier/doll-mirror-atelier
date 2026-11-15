@@ -631,7 +631,7 @@ function updateFace() {
   $('#btn-edge').disabled = !has;
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
   $('#edge-hint').textContent = has
-    ? `${hhmm(S.lastCap.time)} の輪郭に合わせて戻します`
+    ? `${hhmm(S.lastCap.time)} の輪郭に合わせます`
     : '「撮影して完了」を押すと、次から使えます';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
   $('#edge-alpha').value = settings.edgeAlpha;

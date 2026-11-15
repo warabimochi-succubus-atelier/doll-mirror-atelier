@@ -99,24 +99,10 @@ button, select, input[type="range"], label { touch-action: manipulation; }
   /* 仮置きの高さの上限（縦向き用。下の body[data-screen="sim"] .panel）のほうが詳細度が高いため、横向きでは明示して外す */
   body[data-screen="sim"] .body > .panel { max-height: none; }
 }
-/* 仮置き：スマートフォンの横向き（背の低い横長の画面）では、1列だと高さに収まらないため、パネルを広げて2列に組み替える。
-   左：パーツの一覧・名前の行・左右コピー、右：タブとその中身。
-   撮影画像はヘッドを映した縦長の範囲が主で、映像の領域の横幅は余るため、その分をパネルに回す（映像は拡大して見られる） */
+/* 仮置き：スマートフォンの横向き（背の低い横長の画面）。パネルはミラー等と同じ幅・1列とし（画面ごとに映像の幅が変わらないように）、
+   高さが足りない分はパネルをスクロールする。元に戻す・やり直す・修正前の行は、ヘッダーの中央（戻る・画面の名前と「ミラーへ」の間の空き）に重ね、
+   その1行分（約 52px）をパネルに回して、スクロールを少なくする */
 @media (orientation: landscape) and (min-width: 640px) and (max-height: 500px) {
-  /* 映像の領域は、縦長の撮影画像が収まる幅（約 150px）を残す */
-  body[data-screen="sim"] .body > .panel { width: min(640px, calc(100vw - 150px)); }
-  #sim-panel { display: grid; grid-template-columns: minmax(0, 1fr) 296px; column-gap: 16px; align-content: start; align-items: start; }
-  #sim-panel #part-ctl { display: contents; }
-  #sim-panel .sim-parts { grid-column: 1; grid-row: 1; }
-  #sim-panel #parts-empty { grid-column: 1 / -1; grid-row: 2; }
-  #sim-panel .sim-name { grid-column: 1; grid-row: 2; flex-wrap: wrap; row-gap: 6px; }
-  /* 右の列はタブの中身が収まる幅（約 290px）に固定し、残りを左の列にする。
-     左の列が狭い画面（幅 667px 程度）では、名前の行と左右コピーの行を折り返す */
-  #sim-panel .sim-copy { grid-column: 1; grid-row: 3; flex-wrap: wrap; row-gap: 6px; }
-  #sim-panel #btn-copy { min-width: 9em; }
-  #sim-panel .sim-tabs { grid-column: 2; grid-row: 1; margin-top: 0 !important; }
-  #sim-panel .tab-stack { grid-column: 2; grid-row: 2 / 5; }
-  /* 元に戻す・やり直す・修正前の行は、ヘッダーの中央（戻る・画面の名前と「ミラーへ」の間の空き）に重ね、その1行分（約 52px）をパネルに回す */
   body[data-screen="sim"] .simbar {
     position: absolute; z-index: 11; left: 50%; transform: translateX(-50%);
     top: max(0px, env(safe-area-inset-top)); height: 56px; padding: 0; background: none; border-bottom: 0;
