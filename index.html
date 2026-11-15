@@ -218,12 +218,13 @@
               <!-- 重ね順：移動の矢印（↑↓）と見分けられるよう、記号ではなく言葉にする -->
               <button class="btn btn-ghost btn-s" id="part-up" title="ほかのパーツより手前に表示">手前へ</button>
               <button class="btn btn-ghost btn-s" id="part-down" title="ほかのパーツより奥に表示">奥へ</button>
+              <!-- 削除：名前が短く空いている名前の行の右端に置き、下の行の左右コピーを広くする。重ね順のボタンとの間は少し広めに空ける -->
+              <button class="btn btn-danger btn-s" id="btn-del" style="margin-left:6px">削除</button>
             </div>
-            <!-- 左右コピー・囲み直す・削除：主な操作のため、パネルの上のほうに置く（下に置くとスクロールしないと見えない） -->
+            <!-- 左右コピー・囲み直す：主な操作のため、パネルの上のほうに置く（下に置くとスクロールしないと見えない） -->
             <div class="row" style="margin-top:6px">
               <button class="btn grow wrap-text" id="btn-copy"></button>
               <button class="btn btn-ghost btn-s" id="btn-relasso" title="選択範囲を囲み直します">囲み直す</button>
-              <button class="btn btn-danger btn-s" id="btn-del">削除</button>
             </div>
             <!-- 操作をタブで分け、パネルをスクロールせずに使えるようにする。折りたたみと違い、タブの名前がいつも見えるため気付ける -->
             <div class="row" style="margin-top:8px">
