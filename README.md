@@ -54,6 +54,8 @@ python tools/dev-server.py
 
 `tools/dev-server.py` は `python -m http.server` と同じようにファイルを配信し、すべての応答に `Cache-Control: no-cache` を付けます。`python -m http.server` はキャッシュの指示を送らないため、ブラウザがファイルをキャッシュから読み、変更が反映されないことがあります。
 
+開発用のため、既定ではこの PC からだけ開けます。同じ Wi-Fi の端末から開くときは `python tools/dev-server.py --lan` で起動します（カフェなどの共有の Wi-Fi では使わないでください）。どちらの場合も、`.` で始まるファイル・フォルダー（`.git` など）は配信せず、フォルダーの中身の一覧も表示しません。
+
 カメラは https か `localhost` でしか使えません。スマートフォンの実機で試すときは、GitHub Pages で公開した版を使ってください。
 
 ## 公開

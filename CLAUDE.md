@@ -10,7 +10,7 @@
 
 - ビルド不要の静的 PWA（HTML / CSS / JavaScript〔ES モジュール〕）。外部のライブラリは使わない。初期版（0.x。公開前）。
 - タイトル・版の表示・「このアプリについて」・配色・Service Worker の更新の仕組みは、姉妹アプリ doll-pigment-atelier に揃えている。
-- 起動: `python tools/dev-server.py` → http://localhost:8766/（キャッシュさせないヘッダーを付けて配信する）
+- 起動: `python tools/dev-server.py` → http://localhost:8766/（キャッシュさせないヘッダーを付けて配信する。既定は 127.0.0.1 のみで、同じ Wi-Fi の端末から開くときは `--lan` を付ける。`.` で始まるパスとフォルダーの一覧は返さない）
 - カメラの無い PC での確認: http://localhost:8766/index.html?demo（カメラの代わりに `tools/demo-head.svg` を映像として流す。開発ツールから `window.dma` で作業内容を見られる）
 - ファイル構成と現在の制限は [README.md](README.md) を参照。
 - 公開する変更では `js/version.js` の `APP_VERSION` を上げる（Service Worker のキャッシュ名に使う）。ファイルを追加・改名したら `sw.js` の `ASSETS` も直す。
