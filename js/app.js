@@ -759,7 +759,8 @@ $('#m-mode').addEventListener('click', async (e) => {
   if (v === 'edge' && mirrorWhich() === 'live') {
     if (S.mirrorCap) S.mirror.which = 'before';
     else if (!(await shootMirror())) return;
-    toast('輪郭は撮影画像で表示します（ライブでは端末が熱くなるため）');
+    // 理由（ライブでは端末が熱くなる）はマニュアルに書き、トーストは短くする（映像を長く覆わないように）
+    toast('輪郭は撮影画像で表示します');
   }
   settings.mirrorMode = v; save(); updateMirror();
 });
