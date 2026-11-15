@@ -709,7 +709,6 @@ function openMirror(which) {
   if (which) S.mirror.which = which;
   go('mirror');
   updateMirror();
-  if (which === 'after') noteMirrorHidden();
 }
 /** ミラーで今の映像を撮影し、撮影画像の表示にする。撮影できなかったら false */
 async function shootMirror() {
@@ -744,18 +743,7 @@ function mirrorHiddenSide() {
   if (!S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target)) return null;
   return target < 0 ? '左' : '右';
 }
-/** 仮置きに切り替えたとき・重ねる側を変えたときに、覆われる側の修正が映らないことをトーストで知らせる（常に出す注意はパネルに置かない） */
-function noteMirrorHidden() {
-  const side = mirrorHiddenSide();
-  if (side) toast(`${side}側の修正は映りません。両側の修正をあわせて見るには、仮置き画面を使ってください`);
-}
-$('#m-basis').addEventListener('click', (e) => {
-  const v = e.target.closest('button')?.dataset.v;
-  if (!v) return;
-  const changed = v !== S.mirror.basis;
-  S.mirror.basis = v; updateMirror();
-  if (changed) noteMirrorHidden();
-});
+$('#m-basis').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.mirror.basis = v; updateMirror(); } });
 $('#m-which').addEventListener('click', async (e) => {
   const b = e.target.closest('button'), v = b?.dataset.v;
   if (!v || b.disabled) return;
@@ -764,9 +752,7 @@ $('#m-which').addEventListener('click', async (e) => {
     if (await shootMirror()) updateMirror();
     return;
   }
-  const changed = v !== S.mirror.which;
   S.mirror.which = v; updateMirror();
-  if (changed && v === 'after') noteMirrorHidden();
 });
 $('#m-mode').addEventListener('click', async (e) => {
   const b = e.target.closest('button'), v = b?.dataset.v;
