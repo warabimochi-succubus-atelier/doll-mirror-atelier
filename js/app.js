@@ -1203,7 +1203,7 @@ $('#s-fps').addEventListener('change', async (e) => { settings.fps = +e.target.v
 // このアプリについて・版と更新
 // ======================================================================
 const aboutDlg = $('#about-dialog');
-$('#btn-about').addEventListener('click', () => aboutDlg.showModal());
+$$('[data-about]').forEach((b) => b.addEventListener('click', () => aboutDlg.showModal()));
 aboutDlg.addEventListener('click', (e) => { if (e.target === aboutDlg) aboutDlg.close(); });
 $('#dlg').addEventListener('click', (e) => { if (e.target.id === 'dlg') e.target.close(''); });
 $$('[data-app-version]').forEach((el) => (el.textContent = `v${APP_VERSION}`));

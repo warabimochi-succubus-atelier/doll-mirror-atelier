@@ -58,10 +58,21 @@ button, select, input[type="range"], label { touch-action: manipulation; }
   padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));
   background: var(--bg); border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* アプリのアイコン・名前・版（ⓘ 付き）の全体が「このアプリについて」のボタン（姉妹アプリ Doll Iris Atelier に揃える） */
+.brand-heading { display: flex; margin: 0; min-width: 0; font: inherit; }
+.brand {
+  display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 44px;
+  margin: -6px 0 -6px -8px; padding: 4px 10px 4px 8px;
+  border: 1px solid transparent; border-radius: 10px; background: transparent;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+@media (hover: hover) { .brand:hover { border-color: var(--line); } }
 .brand-icon { border-radius: 8px; display: block; flex: none; }
+.brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .brand-name { font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
-.brand-sub { font-size: 11px; color: var(--ink-2); line-height: 1; }
+.brand-sub { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-2); line-height: 1; }
+.brand-sub .info-icon { flex: none; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* 戻る：見た目は小さい矢印のまま、押せる範囲を 44px 角にする（左は画面の端に寄せる） */
 .back { display: grid; place-items: center; width: 44px; height: 44px; margin: -4px 0 -4px -12px; border: 0; background: none; color: var(--ink-2); padding: 0; cursor: pointer; flex: none; }
 .bar-title { font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
