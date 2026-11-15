@@ -515,6 +515,8 @@ function renderChips() {
     const which = mirrorWhich();
     chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
     chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') : `仮置きの結果（${hhmm(S.sim.cap.time)}）`}</span>`);
+    const hiddenSide = mirrorHiddenSide();
+    if (hiddenSide) chips.push(`<span class="pill warn">${hiddenSide}側の修正は映りません</span>`);
     const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
       chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
@@ -707,6 +709,7 @@ function openMirror(which) {
   if (which) S.mirror.which = which;
   go('mirror');
   updateMirror();
+  if (which === 'after') noteMirrorHidden();
 }
 /** ミラーで今の映像を撮影し、撮影画像の表示にする。撮影できなかったら false */
 async function shootMirror() {
@@ -726,25 +729,33 @@ function updateMirror() {
   const live = mirrorWhich() === 'live';
   // ライブは「画像」だけ（輪郭をコマごとに取り出すと端末が熱くなるため）。「輪郭のみ」を押すと撮影画像に切り替える
   setSeg('#m-mode', live ? 'img' : settings.mirrorMode);
-  $('#m-live-note').hidden = !live;
   $('#m-alpha').value = settings.mirrorAlpha;
   $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`;
-  const note = $('#m-after-note');
-  if (S.mirror.which === 'after' && S.sim) {
-    const msgs = [];
-    // 反転するのは重ねる側の反対側。重ねる側（覆われる側）にある修正は表示されない
-    const target = S.mirror.basis === 'left' ? -1 : 1;
-    const hidden = S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target);
-    const [tw, sw] = target < 0 ? ['左', '右'] : ['右', '左'];
-    if (hidden) msgs.push(`${tw}側の修正は表示されません（${sw}側を反転して重ねているため）。両側の修正をあわせて見るには、仮置き画面を使ってください。`);
-    // いつ撮影した画像がもとかは、撮影画像と同じく映像の上の表示に時刻で出す（パネルに長い注意は出さない）
-    note.innerHTML = msgs.map(esc).join('<br>');
-    note.hidden = !msgs.length;
-  } else note.hidden = true;
   renderChips();
   updateBanner();
 }
-$('#m-basis').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.mirror.basis = v; updateMirror(); } });
+/**
+ * 仮置きの表示中に、重ねる側（反転した画像で覆われる側）に表示中のパーツがあれば、その側（'左' / '右'）。無ければ null。
+ * 反転するのは重ねる側の反対側のため、覆われる側にある修正は映らない
+ */
+function mirrorHiddenSide() {
+  if (S.screen !== 'mirror' || mirrorWhich() !== 'after' || !S.sim) return null;
+  const target = S.mirror.basis === 'left' ? -1 : 1;
+  if (!S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target)) return null;
+  return target < 0 ? '左' : '右';
+}
+/** 仮置きに切り替えたとき・重ねる側を変えたときに、覆われる側の修正が映らないことをトーストで知らせる（常に出す注意はパネルに置かない） */
+function noteMirrorHidden() {
+  const side = mirrorHiddenSide();
+  if (side) toast(`${side}側の修正は映りません。両側の修正をあわせて見るには、仮置き画面を使ってください`);
+}
+$('#m-basis').addEventListener('click', (e) => {
+  const v = e.target.closest('button')?.dataset.v;
+  if (!v) return;
+  const changed = v !== S.mirror.basis;
+  S.mirror.basis = v; updateMirror();
+  if (changed) noteMirrorHidden();
+});
 $('#m-which').addEventListener('click', async (e) => {
   const b = e.target.closest('button'), v = b?.dataset.v;
   if (!v || b.disabled) return;
@@ -753,15 +764,19 @@ $('#m-which').addEventListener('click', async (e) => {
     if (await shootMirror()) updateMirror();
     return;
   }
+  const changed = v !== S.mirror.which;
   S.mirror.which = v; updateMirror();
+  if (changed && v === 'after') noteMirrorHidden();
 });
 $('#m-mode').addEventListener('click', async (e) => {
   const b = e.target.closest('button'), v = b?.dataset.v;
   if (!v || b.disabled) return;
   // ライブで「輪郭のみ」を選んだら、撮影画像に切り替える（無ければ撮影する）
+  // （輪郭をコマごとに取り出すと端末が熱くなるため。パネルに常に説明を出す代わりに、押したときに知らせる）
   if (v === 'edge' && mirrorWhich() === 'live') {
     if (S.mirrorCap) S.mirror.which = 'before';
     else if (!(await shootMirror())) return;
+    toast('輪郭は撮影画像で表示します（ライブでは端末が熱くなるため）');
   }
   settings.mirrorMode = v; save(); updateMirror();
 });
