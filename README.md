@@ -1,5 +1,7 @@
 # Doll Mirror Atelier (ドールメイク用 左右差確認・修正シミュレーションツール)
 
+<img src="images/screenshot-mirror.png" width="360" alt="ミラー画面：ライブ映像の右側を中心線で反転して左側に重ね、左右差を確かめているところ（カメラの代わりにデモ用の図のヘッドを映している）">
+
 ## Overview (English)
 
 **Open the app: [https://warabimochi-succubus-atelier.github.io/doll-mirror-atelier/](https://warabimochi-succubus-atelier.github.io/doll-mirror-atelier/)**
@@ -98,6 +100,7 @@ js/ui.js              ダイアログ・案内
 icons/                アプリアイコン（PWA 用 any / maskable、iOS 用、ファビコン。python tools/make-icons.py で原画から書き出す）
 icons/source/         アイコンの元画像
 images/author-logo.webp  作者ロゴ（「このアプリについて」ダイアログ）
+images/screenshot-mirror.png  README に載せているミラー画面のスクリーンショット（?demo で撮影）
 manifest.webmanifest  PWA マニフェスト
 sw.js                 Service Worker（オフライン用。新しい版が届いたら画面に知らせる）
 .nojekyll             GitHub Pages の Jekyll 変換を止め、ファイルをそのまま配信する（中身は空）
