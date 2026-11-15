@@ -25,7 +25,7 @@ const S = {
   resumeNote: false, // アプリに戻ったときの、元の位置を確かめる案内（ホーム）
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。ボタンを押している間だけ。左右の取り違えを防ぐため）
   // which：表示する画像。ライブから始める（開くたびに撮影して待たせない。止めて見たいときに撮影する）
-  mirror: { basis: 'left', which: 'live', adj: { x: 0, y: 0, s: 1, r: 0 }, view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
+  mirror: { basis: 'left', which: 'live', view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
   face: { angle0: 0, view: { s: 1, x: 0, y: 0 } }, // view：顔位置設定の表示の拡大・移動（画面の座標）
   capturing: 0,      // 撮影（待ち時間）中の番号。画面を離れたら取りやめる
   // 仮置き画面
@@ -469,15 +469,13 @@ function drawMirror(V, fw, fh) {
       : () => ctx.drawImage(img, 0, 0);
   }
   const ax = G.axis(w, h, angle);
-  const a = S.mirror.adj;
-  const adj = G.mul(G.T(ax.c[0] + a.x * w, ax.c[1] + a.y * w), G.R(a.r * G.DEG), G.S(a.s), G.T(-ax.c[0], -ax.c[1]));
   // basis は重ねる側：'left' は画面右側を反転して画面左側へ、'right' はその逆
   const side = S.mirror.basis === 'left' ? -1 : 1;
   const poly = G.halfPlane(ax, side, Math.max(w, h) * 2).map((p) => G.ap(Vc, p));
   ctx.save();
   ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.closePath(); ctx.clip();
   ctx.globalAlpha = 1 - settings.mirrorAlpha / 100;
-  ctx.setTransform(...G.mul(Vc, adj, G.reflectM(ax)));
+  ctx.setTransform(...G.mul(Vc, G.reflectM(ax)));
   paint();
   ctx.restore();
   if (settings.assist.center) drawGuides(Vc, w, h, angle, false);
@@ -768,13 +766,6 @@ $('#m-mode').addEventListener('click', async (e) => {
   settings.mirrorMode = v; save(); updateMirror();
 });
 $('#m-alpha').addEventListener('input', (e) => { settings.mirrorAlpha = +e.target.value; save(); $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`; });
-$('#m-adj').addEventListener('click', (e) => {
-  const k = e.target.closest('[data-adj]')?.dataset.adj; if (!k) return;
-  const a = S.mirror.adj, sg = k[1] === '+' ? 1 : -1;
-  if (k[0] === 'x') a.x += 0.0015 * sg; else if (k[0] === 'y') a.y += 0.0015 * sg;
-  else if (k[0] === 's') a.s = G.clamp(a.s * (1 + 0.004 * sg), 0.8, 1.25); else a.r += 0.2 * sg;
-});
-$('#m-adj0').addEventListener('click', () => { S.mirror.adj = { x: 0, y: 0, s: 1, r: 0 }; });
 // 今の映像を撮影：ライブ・撮影画像・仮置きのどれを表示していても、撮影して撮影画像の表示にする
 $('#btn-shot').addEventListener('click', async () => {
   if (!(await shootMirror())) return;
