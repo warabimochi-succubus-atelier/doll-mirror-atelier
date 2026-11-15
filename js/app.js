@@ -23,6 +23,7 @@ const S = {
   headMoved: false,  // ヘッドが動いた可能性がある（ミラーで、顔位置設定で元の位置に戻すよう案内する）
   startupNote: true, // 起動時の「ヘッドを中心線に合わせて撮影してください」
   resumeNote: false, // アプリに戻ったときの、元の位置を確かめる案内（ホーム）
+  simTab: 'move',    // 仮置きのパネルのタブ（'move'：動かす、'size'：大きさ、'makeup'：メイク）
   flip: false,       // ホームのライブ映像の左右反転（表示だけ。ボタンを押している間だけ。左右の取り違えを防ぐため）
   // which：表示する画像。ライブから始める（開くたびに撮影して待たせない。止めて見たいときに撮影する）
   mirror: { basis: 'left', which: 'live', view: { s: 1, x: 0, y: 0 } }, // view：表示の拡大・移動（画面の座標）
@@ -625,7 +626,6 @@ setInterval(updateLevel, 120);
 // 顔位置設定
 // ======================================================================
 function updateFace() {
-  $('#angle-v').textContent = fmtAngle(settings.angle);
   // 元の位置（前回の撮影画像の輪郭）
   const has = !!S.lastCap;
   $('#btn-edge').disabled = !has;
@@ -1096,11 +1096,13 @@ function updateSimPanel() {
   $('#part-ctl').hidden = !p;
   if (p) {
     $('#part-name').textContent = p.name;
-    $('#part-vis').textContent = p.visible ? '非表示' : '表示';
+    $('#part-vis').checked = p.visible;
     const i = sim.parts.indexOf(p);
     $('#part-up').disabled = i === sim.parts.length - 1;
     $('#part-down').disabled = i === 0;
     setSeg('#origin', p.origin);
+    setSeg('#sim-tab', S.simTab);
+    $$('#part-ctl [data-tab]').forEach((el) => { el.hidden = el.dataset.tab !== S.simTab; });
     $('#origin-lbl').textContent = p.copy ? 'コピー先のメイク' : '元のメイク';
     $('#feather').value = p.feather;
     $('#strength').value = Math.round(p.strength * 100);
@@ -1113,7 +1115,7 @@ function updateSimPanel() {
     $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
     $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
     const notes = [];
-    if (p.copy && p.origin === 'keep') notes.push('「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
+    if (p.copy && p.origin === 'keep') notes.push('「メイク」の「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
     else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
     if (!p.visible) notes.push('非表示のパーツは、ミラーの「仮置き」の画像にも含めません。');
     $('#part-note').textContent = notes.join(' ');
@@ -1148,8 +1150,10 @@ $$('[data-sc]').forEach((b) => b.addEventListener('click', () => edit((p) => {
   if (dir !== 'thk') p.t.sl = G.clamp(p.t.sl * f, 0.2, 5);
   if (dir !== 'len') p.t.st = G.clamp(p.t.st * f, 0.2, 5);
 })));
+// 仮置きのパネルのタブ（動かす／大きさ／メイク）。パネルの表示だけで、取り消しの対象にしない
+$('#sim-tab').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.simTab = v; updateSimPanel(); } });
 $('#origin').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) edit((p) => { p.origin = v; }); });
-$('#part-vis').addEventListener('click', () => edit((p) => { p.visible = !p.visible; }));
+$('#part-vis').addEventListener('change', (e) => edit((p) => { p.visible = e.target.checked; }));
 $('#part-up').addEventListener('click', () => edit((p, sim) => { const i = sim.parts.indexOf(p); if (i < sim.parts.length - 1) [sim.parts[i], sim.parts[i + 1]] = [sim.parts[i + 1], sim.parts[i]]; }));
 $('#part-down').addEventListener('click', () => edit((p, sim) => { const i = sim.parts.indexOf(p); if (i > 0) [sim.parts[i], sim.parts[i - 1]] = [sim.parts[i - 1], sim.parts[i]]; }));
 $('#btn-del').addEventListener('click', () => { const sim = S.sim, p = sim.selPart; if (!p) return; sim.begin(); sim.removePart(p); updateSimPanel(); S.dirty = true; });
