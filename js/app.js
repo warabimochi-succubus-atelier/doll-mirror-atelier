@@ -512,12 +512,11 @@ function renderChips() {
   }
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
     // 重ねる側・表示する画像はパネルのボタンで分かるため、映像の上には出さない（眉・額にかからないよう、表示は短く少なくする）。
-    // パネルに無い撮影の時刻と、パネルからは分からない注意だけを出す
+    // パネルに無い撮影の時刻と、パネルからは分からない注意だけを出す。
+    // 仮置きで覆われる側の修正が映らないことは出さない（ミラーの仕組みそのもので、左右コピーで両側にパーツがあるといつも出続けるため）
     const which = mirrorWhich();
     const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc) chips.push(`<span class="pill">${hhmm(mc.time)} 撮影</span>`);
-    const hiddenSide = mirrorHiddenSide();
-    if (hiddenSide) chips.push(`<span class="pill warn">${hiddenSide}側の修正は映りません</span>`);
     if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) chips.push('<span class="pill warn">ズーム違い：撮り直すとはっきりします</span>');
   }
   if (S.screen === 'sim' && S.sim) {
@@ -730,16 +729,6 @@ function updateMirror() {
   $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`;
   renderChips();
   updateBanner();
-}
-/**
- * 仮置きの表示中に、重ねる側（反転した画像で覆われる側）に表示中のパーツがあれば、その側（'左' / '右'）。無ければ null。
- * 反転するのは重ねる側の反対側のため、覆われる側にある修正は映らない
- */
-function mirrorHiddenSide() {
-  if (S.screen !== 'mirror' || mirrorWhich() !== 'after' || !S.sim) return null;
-  const target = S.mirror.basis === 'left' ? -1 : 1;
-  if (!S.sim.parts.some((p) => p.visible && S.sim.partSide(p) === target)) return null;
-  return target < 0 ? '左' : '右';
 }
 $('#m-basis').addEventListener('click', (e) => { const v = e.target.closest('button')?.dataset.v; if (v) { S.mirror.basis = v; updateMirror(); } });
 $('#m-which').addEventListener('click', async (e) => {

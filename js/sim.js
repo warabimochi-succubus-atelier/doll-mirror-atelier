@@ -174,13 +174,6 @@ export class Sim {
     this.touch();
     return c;
   }
-  /** 中心線から見たパーツの側（+1 画面右側 / -1 画面左側 / 0 中央） */
-  partSide(p) {
-    const ex = this.layerOf(p);
-    const c = G.ap(this.matrix(p), [ex.x + ex.w / 2, ex.y + ex.h / 2]);
-    const s = G.sideOf(this.ax, c);
-    return Math.abs(s) < this.centerHalf ? 0 : Math.sign(s);
-  }
   // ---------------- 描画 ----------------
   /**
    * @param ctx 描画先、V 画像の座標 → 描画先の座標の行列
