@@ -285,11 +285,10 @@ async function countdown(sec) {
   return token === S.capturing;
 }
 // 待ち時間の間に映像をタップしたら、撮影を取りやめる（画面に触れると端末が揺れるため、そのまま撮らない）。
-// 映像の操作（ピンチ等）には渡さない
+// 映像の操作（ピンチ等）には渡さない。自分でタップして取りやめたため、トーストは出さない（枠が消えて分かる）
 $('#count').addEventListener('pointerdown', (e) => {
   e.stopPropagation(); e.preventDefault();
   S.capturing++; $('#count').hidden = true;
-  toast('撮影を取りやめました');
 });
 /** 映像を撮影する（待ち時間の後。ピンぼけ・ブレのチェックは補助の表示の ON / OFF に関わらず行う） */
 async function capture() {
@@ -695,8 +694,8 @@ async function leaveFace() {
   if (Math.abs(a0 - a1) < 0.001 || !(S.mirrorCap || S.sim)) return true;
   if (S.mirrorCap) S.mirrorCap.angle = a1;
   if (S.sim) S.sim.setAngle(a1);
+  // トーストは出さない（ミラーを開いたときの、元の位置に戻す案内で分かる）
   S.headMoved = true;
-  toast('中心線の角度を、撮影画像にも当てました');
   return true;
 }
 
@@ -767,9 +766,9 @@ $('#m-mode').addEventListener('click', async (e) => {
 });
 $('#m-alpha').addEventListener('input', (e) => { settings.mirrorAlpha = +e.target.value; save(); $('#m-alpha-v').textContent = `${settings.mirrorAlpha}%`; });
 // 今の映像を撮影：ライブ・撮影画像・仮置きのどれを表示していても、撮影して撮影画像の表示にする
+// （表示と映像の上の撮影の時刻が変わって分かるため、トーストは出さない）
 $('#btn-shot').addEventListener('click', async () => {
   if (!(await shootMirror())) return;
-  toast('撮影しました');
   updateMirror();
 });
 // ミラーのヘッダーの「仮置き」：仮置きがあれば、選ばずにそのまま戻る（仮置き ⇄ ミラーの往復で毎回選ばせない）。
@@ -1076,10 +1075,10 @@ async function finishLasso() {
     sim.touch(); updateSimPanel(); S.dirty = true;
     return;
   }
-  // 名前は囲んだ位置（中心線のどちら側か）から自動で付ける（例：右1）
+  // 名前は囲んだ位置（中心線のどちら側か）から自動で付ける（例：右1）。
+  // 追加したパーツは選んだ状態でパネルに出るため、トーストは出さない（左右コピーも同じ）
   sim.begin();
   const p = sim.addPart(poly);
-  toast(`${p.name}を追加しました`);
   updateSimPanel(); S.dirty = true;
 }
 
@@ -1176,7 +1175,6 @@ $('#btn-copy').addEventListener('click', () => {
   // 反対側に新しいパーツとして追加する（既にある反対側のパーツは置き換えない）
   const r = sim.copyPart(p);
   if (!r) { sim.cancel(); return; }
-  toast(`${r.name}のパーツを追加しました`);
   updateSimPanel(); S.dirty = true;
 });
 
