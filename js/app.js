@@ -522,12 +522,11 @@ function renderChips() {
   }
   if (S.screen === 'sim' && S.sim) {
     if (S.before) chips.push('<span class="pill bad">修正前を表示中</span>');
-    const p = S.sim.selPart;
+    // 編集中のパーツは、パネルのパーツの名前で分かるため出さない。囲む・支点を決める操作中だけ、何をするかを出す
     if (S.mode === 'lasso') chips.push('<span class="pill">指でなぞって、パーツにする範囲を囲んでください</span>');
     else if (S.mode === 'relasso') chips.push('<span class="pill">選択範囲を囲み直してください</span>');
     else if (S.mode === 'redest') chips.push('<span class="pill">もとからあるメイクを薄くする・消す範囲を囲んでください</span>');
     else if (S.mode === 'pivot') chips.push('<span class="pill">回転の支点にする位置をタップしてください</span>');
-    else if (p) chips.push(`<span class="pill">${esc(p.name)}を編集中</span>`);
   }
   const html = chips.join('');
   const el = $('#chips');
@@ -569,7 +568,7 @@ $('#banner-x').addEventListener('click', () => {
 // カメラ（ホーム）
 // ======================================================================
 function updateHome() {
-  $('#home-hint').textContent = cam.wakeSupported ? '水準器・照明・ピンぼけは顔位置設定に出ます' : 'この端末は画面の消灯を止められません。自動ロックの時間を長くしてください';
+  $('#home-hint').hidden = cam.wakeSupported;
   renderChips();
 }
 holdButton($('#btn-flip'), (v) => { S.flip = v; renderChips(); });
@@ -1115,8 +1114,9 @@ function updateSimPanel() {
     $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
     $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
     const notes = [];
-    if (p.copy && p.origin === 'keep') notes.push('「メイク」の「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
-    else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
+    // 短く1文にする（長いと、パーツを選ぶたびにパネルの高さが大きく変わり、読まれなくなるため。詳しくはマニュアル）
+    if (p.copy && p.origin === 'keep') notes.push('コピー先のもとのメイクは「メイク」で薄く・消せます');
+    else if (p.copy) notes.push(`黄色の点線：もとのメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲`);
     $('#part-note').textContent = notes.join(' ');
   }
   renderChips();

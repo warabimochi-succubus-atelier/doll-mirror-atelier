@@ -106,16 +106,15 @@
               </button>
             </div>
           </div>
+          <!-- 設置ガイドと左右反転を1行に並べる。左右反転は、ボタンの名前（押して反転）で使い方が分かるため、説明は置かない（マニュアルにある） -->
           <div class="row" style="margin-top:10px">
-            <span class="lbl">左右反転</span>
-            <span class="hint grow" style="margin:0">押している間だけ映像を鏡のように反転して、全体のバランスを見ます</span>
+            <button class="btn btn-ghost btn-s" data-go="setup"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5A2.5 2.5 0 006.5 23H20v-5"/></svg>設置ガイド</button>
+            <span class="grow"></span>
             <!-- 修正前と同じく押している間だけ（戻し忘れて左右を取り違えないように。押す・離すで見比べやすい） -->
             <button class="btn btn-ghost btn-s hold" id="btn-flip" title="押している間だけ左右反転して表示"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 3v18" stroke-dasharray="2 2"/><path d="M9 7L4 12l5 5z"/><path d="M15 7l5 5-5 5z"/></svg>押して反転</button>
           </div>
-          <div class="row">
-            <button class="btn btn-ghost btn-s" data-go="setup"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5A2.5 2.5 0 006.5 23H20v-5"/></svg>設置ガイド</button>
-            <span class="hint" style="margin:0" id="home-hint">水準器・照明・ピンぼけは顔位置設定に出ます</span>
-          </div>
+          <!-- 画面の消灯を止められない端末だけ、自動ロックを見直すよう出す -->
+          <p class="hint" id="home-hint" hidden>この端末は画面の消灯を止められません。自動ロックの時間を長くしてください</p>
         </div>
 
         <!-- 顔位置設定 -->
@@ -156,7 +155,7 @@
                 </ul>
               </li>
               <li>わずかに残る傾きは「中心線の角度」で合わせる</li>
-              <li>合わせ終えたら「撮影して完了」を押す</li>
+              <li>合わせ終えたら「撮影して完了」を押す。合わせたヘッドを撮影し、ミラー・仮置きの撮影画像と元の位置の輪郭にします（撮影せずに戻るときは「‹」）</li>
             </ol>
             <p>ヘッドを動かした後は、「元の位置」の「輪郭を重ねる」で、撮影したときの輪郭に合わせて戻します。</p>
             <p>水準器（左下）でスタンドの傾きを、映像の上の表示で照明の左右差とピンぼけを確かめてから撮影します。端末とヘッドの置き方は、設置ガイドを見てください。</p>
@@ -164,8 +163,8 @@
             <p>2本指で広げると映像を拡大し、ガイドと輪郭も一緒に拡大します（1本指で表示を移動）。拡大はこの画面の表示だけで、撮影する範囲は変わりません。画面を操作した後は、揺れが収まってから重なりを確かめてください。</p>
           </template>
           <!-- 合わせ終えたヘッドを撮影し、ミラーの撮影画像と元の位置の輪郭にする（撮影せずに戻るときは「‹」） -->
+          <!-- 説明は「合わせ方」のダイアログに置き、パネルを短くする -->
           <button class="btn btn-primary btn-block btn-l" id="btn-face-done">撮影して完了</button>
-          <p class="hint" style="text-align:center">合わせたヘッドを撮影し、ミラー・仮置きの撮影画像と元の位置の輪郭にします。撮影せずに戻るときは「‹」</p>
         </div>
 
         <!-- ミラー -->
@@ -188,13 +187,13 @@
           <div class="row">
             <button class="btn btn-l grow" id="btn-shot">今の映像を撮影</button>
           </div>
-          <!-- 透明度はよく変えるため、表示方法より上に置く（小さい画面でもスクロールせずに見えるように） -->
+          <!-- 透明度はよく変えるため、表示方法より上に置く（小さい画面でもスクロールせずに見えるように）。
+               0% と透明度を上げたときの使い分けの説明はマニュアルに置き、パネルには出し続けない -->
           <div class="row">
             <span class="lbl">透明度</span>
             <input type="range" min="0" max="100" id="m-alpha" aria-label="透明度">
             <span class="val mono" id="m-alpha-v"></span>
           </div>
-          <p class="hint" style="margin-top:0">0%：完全に対称に見え、左右差を確かめられます。透明度を上げると下のライブ映像が透け、反対側を描くガイドになります。</p>
           <div class="row">
             <span class="lbl">表示方法</span>
             <div class="seg" id="m-mode"><button data-v="img">画像</button><button data-v="edge">輪郭のみ</button></div>
