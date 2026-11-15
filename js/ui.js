@@ -58,5 +58,7 @@ export function choose(opt) {
     dlg.returnValue = '';
     dlg.addEventListener('close', done);
     dlg.showModal();
+    // 前に開いたときのスクロール位置に関わらず、先頭から表示する（横向き等で高さが足りない場合）
+    $('.dlg-body', form).scrollTop = 0;
   });
 }

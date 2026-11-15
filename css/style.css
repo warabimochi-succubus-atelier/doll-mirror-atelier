@@ -285,6 +285,8 @@ ul.plain { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-2); 
   width: min(440px, calc(100% - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 0;
   border-radius: 18px; background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.25);
 }
+/* ダイアログ自体にフォーカスを置いて開くため（autofocus）、その枠は描かない */
+.dialog:focus { outline: none; }
 .dialog::backdrop { background: rgba(40, 25, 30, .4); backdrop-filter: blur(2px); }
 .dialog form { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
 .dlg-body { padding: 18px 18px 12px; overflow-y: auto; }

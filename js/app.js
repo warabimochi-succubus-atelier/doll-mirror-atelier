@@ -1200,7 +1200,12 @@ $('#s-fps').addEventListener('change', async (e) => { settings.fps = +e.target.v
 // このアプリについて・版と更新
 // ======================================================================
 const aboutDlg = $('#about-dialog');
-$$('[data-about]').forEach((b) => b.addEventListener('click', () => aboutDlg.showModal()));
+// 先頭から表示する（横向き等で高さが足りない場合。前に開いたときのスクロール位置を残さない）
+$$('[data-about]').forEach((b) => b.addEventListener('click', () => {
+  aboutDlg.showModal();
+  aboutDlg.querySelectorAll('*').forEach((el) => { if (el.scrollTop) el.scrollTop = 0; });
+  aboutDlg.scrollTop = 0;
+}));
 aboutDlg.addEventListener('click', (e) => { if (e.target === aboutDlg) aboutDlg.close(); });
 $('#dlg').addEventListener('click', (e) => { if (e.target.id === 'dlg') e.target.close(''); });
 $$('[data-app-version]').forEach((el) => (el.textContent = `v${APP_VERSION}`));

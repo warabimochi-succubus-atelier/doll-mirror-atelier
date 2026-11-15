@@ -337,10 +337,11 @@
   </div>
 
   <!-- 選択肢のダイアログ（中身はスクリプトで作る） -->
-  <dialog id="dlg" class="dialog"><form method="dialog" id="dlg-form"></form></dialog>
+  <!-- autofocus：開いたときにダイアログ自体にフォーカスを置く（最初のボタンにフォーカスが移ると、そこまでスクロールして先頭が隠れるため） -->
+  <dialog id="dlg" class="dialog" autofocus><form method="dialog" id="dlg-form"></form></dialog>
 
   <!-- このアプリについて -->
-  <dialog id="about-dialog" class="dialog about">
+  <dialog id="about-dialog" class="dialog about" autofocus>
     <form method="dialog">
       <div class="about-body">
         <img src="icons/icon-192.png" alt="" width="88" height="88" class="about-icon">
