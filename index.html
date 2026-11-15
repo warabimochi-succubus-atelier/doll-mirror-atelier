@@ -203,14 +203,15 @@
         </div>
 
         <!-- 仮置き：パーツ移動 -->
-        <div data-show="sim">
-          <div class="row">
+        <!-- スマートフォンの横向き（背の低い横長の画面）では、2列に組み替える（style.css の #sim-panel） -->
+        <div data-show="sim" id="sim-panel">
+          <div class="row sim-parts">
             <div class="parts grow" id="parts"></div>
             <button class="btn btn-s" id="btn-lasso" aria-pressed="false">＋ 囲んで追加</button>
           </div>
           <p class="hint" id="parts-empty">「＋ 囲んで追加」を押し、画像の上を指でなぞって、動かしたいメイク（眉・チーク等）を囲みます。移動は画像上の2D移動です。大きく動かした場合の見え方は目安です。</p>
           <div id="part-ctl" hidden>
-            <div class="row" style="margin-top:8px">
+            <div class="row sim-name" style="margin-top:8px">
               <b id="part-name" class="grow" aria-label="パーツの名前"></b>
               <!-- 表示：今の状態が分かるようにスイッチにする（ボタンの名前だと、状態か押すと起こることか迷うため） -->
               <label class="vis-toggle"><input type="checkbox" class="switch" id="part-vis">表示</label>
@@ -221,12 +222,12 @@
               <button class="btn btn-danger btn-s" id="btn-del" style="margin-left:6px">削除</button>
             </div>
             <!-- 左右コピー・囲み直す：主な操作のため、パネルの上のほうに置く（下に置くとスクロールしないと見えない） -->
-            <div class="row" style="margin-top:6px">
+            <div class="row sim-copy" style="margin-top:6px">
               <button class="btn grow wrap-text" id="btn-copy"></button>
               <button class="btn btn-ghost btn-s" id="btn-relasso" title="選択範囲を囲み直します">囲み直す</button>
             </div>
             <!-- 操作をタブで分け、パネルをスクロールせずに使えるようにする。折りたたみと違い、タブの名前がいつも見えるため気付ける -->
-            <div class="row" style="margin-top:8px">
+            <div class="row sim-tabs" style="margin-top:8px">
               <div class="seg" id="sim-tab" role="tablist"><button data-v="move" role="tab">動かす</button><button data-v="size" role="tab">大きさ</button><button data-v="makeup" role="tab">メイク</button></div>
             </div>
             <!-- タブの中身は同じ場所に重ね、選んでいないタブは見えなくするだけにする。
