@@ -547,7 +547,8 @@ function updateBanner() {
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   } else if (S.screen === 'home' && S.resumeNote && cam.ready && (S.mirrorCap || S.sim)) {
-    t.textContent = 'アプリに戻りました。ヘッドが動いていないか、顔位置設定の「元の位置」で確かめてください';
+    // アプリを切り替えるたびに出るため、短くする（確かめ方は「顔位置設定へ」のボタンとマニュアルで分かる）
+    t.textContent = 'ヘッドが動いていないか確かめてください';
     act.innerHTML = '<button class="btn btn-primary btn-s" data-go="face">顔位置設定へ</button>';
     show = true;
   } else if (S.screen === 'mirror' && S.headMoved && mirrorWhich() !== 'live' && (S.mirrorCap || S.sim)) {
@@ -630,7 +631,7 @@ function updateFace() {
   $('#btn-edge').disabled = !has;
   $('#btn-edge').setAttribute('aria-pressed', String(has && settings.assist.edge));
   $('#edge-hint').textContent = has
-    ? `ヘッドを動かした後、${hhmm(S.lastCap.time)} に撮影したときの輪郭に合わせて戻します`
+    ? `${hhmm(S.lastCap.time)} の輪郭に合わせて戻します`
     : '「撮影して完了」を押すと、次から使えます';
   $('#edge-alpha-row').hidden = !(has && settings.assist.edge);
   $('#edge-alpha').value = settings.edgeAlpha;
@@ -678,7 +679,7 @@ $('#btn-face-done').addEventListener('click', async () => {
     S.face.angle0 = settings.angle;
     if (S.sim && Math.abs(S.sim.cap.angle - settings.angle) > 0.001) S.sim.setAngle(settings.angle);
     S.headMoved = false;
-    toast('撮影しました。ミラーの「撮影画像」と、仮置きで使えます');
+    toast('撮影しました'); // どこで使えるかは、ホームの入口の説明とマニュアルで分かる
   }
   back();
 });
