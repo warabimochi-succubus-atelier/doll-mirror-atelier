@@ -1119,7 +1119,6 @@ function updateSimPanel() {
     const notes = [];
     if (p.copy && p.origin === 'keep') notes.push('「メイク」の「コピー先のメイク」で、コピー先にもとからあるメイクを薄くする・消すを選べます。');
     else if (p.copy) notes.push(`もとからあるメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲を黄色の点線で表示しています（${p.destAuto ? 'コピー元を中心線で反転した位置に自動で決めた範囲' : '囲み直した範囲'}）。もとからあるメイクからずれている場合は「消す範囲を囲み直す」で囲み直します。`);
-    if (!p.visible) notes.push('非表示のパーツは、ミラーの「仮置き」の画像にも含めません。');
     $('#part-note').textContent = notes.join(' ');
   }
   renderChips();
