@@ -289,7 +289,8 @@ ul.plain { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-2); 
 .about-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
 .about-links .btn { text-decoration: none; color: var(--ink); }
 
-/* 案内は画面上部（ヘッダーのすぐ下）に出す。クリックは下の要素に通す */
+/* 案内は、映像の領域がある画面では映像の下端に出す（位置は ui.js の placeToast で決める）。
+   映像の領域が無い画面では、画面上部（ヘッダーのすぐ下）に出す。クリックは下の要素に通す */
 .toast {
   position: fixed; inset: auto; left: 50%; top: calc(max(8px, env(safe-area-inset-top)) + 56px); transform: translateX(-50%); z-index: 50; margin: 0; border: 0;
   width: max-content; max-width: calc(100% - 32px); pointer-events: none;

@@ -211,25 +211,26 @@ function chooseZoom(v) {
 }
 async function setZoom(v) {
   if (Math.abs(v - cam.zoom) < 0.01) return;
-  const z0 = cam.zoom;
   await cam.setZoom(v);
-  finishZoom(z0);
+  finishZoom();
 }
-/** ズーム倍率を変え終えたとき：設定に保存し、撮影画像がある場合は重ね方を案内する */
-function finishZoom(z0) {
+/**
+ * ズーム倍率を変え終えたとき：設定に保存する。
+ * 撮影画像と倍率が違うことは、ミラーの映像の上の表示で知らせる（倍率を変えるたびにトーストを出すと煩わしいため）
+ */
+function finishZoom() {
   settings.zoom = cam.zoom; save();
-  if (Math.abs(cam.zoom - z0) >= 0.01 && (S.mirrorCap || S.sim)) toast('ミラーでは、撮影画像をズームに合わせて拡大・縮小して重ねます。画質が下がる・ずれる場合は撮り直してください');
   updateZoomButtons(); renderChips();
 }
 /**
  * ホームのピンチ・マウスホイールによるズーム（操作中）。倍率は 0.1 刻み。
  * カメラのズーム制御は呼び出しに時間がかかるため、前の呼び出しが終わるまでは最後の値だけを残して待たせる
  */
-const camZoom = { busy: false, next: null, z0: null, timer: 0, wheel: null };
+const camZoom = { busy: false, next: null, active: false, timer: 0, wheel: null };
 function pinchZoom(z) {
   const r = cam.zoomRange();
   z = Math.round(G.clamp(z, r.min, r.max) * 10) / 10;
-  if (camZoom.z0 == null) camZoom.z0 = cam.zoom;
+  camZoom.active = true;
   camZoom.next = z;
   if (camZoom.busy) return;
   (async () => {
@@ -244,10 +245,9 @@ function pinchZoom(z) {
 }
 /** ピンチ・マウスホイールのズームを終える */
 function endPinchZoom() {
-  if (camZoom.z0 == null) return;
-  const z0 = camZoom.z0;
-  camZoom.z0 = null; camZoom.wheel = null;
-  const done = () => (camZoom.busy ? setTimeout(done, 50) : finishZoom(z0));
+  if (!camZoom.active) return;
+  camZoom.active = false; camZoom.wheel = null;
+  const done = () => (camZoom.busy ? setTimeout(done, 50) : finishZoom());
   done();
 }
 $('#zoom').addEventListener('click', (e) => {
@@ -512,15 +512,14 @@ function renderChips() {
     if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
   }
   if (S.screen === 'mirror' && (mirrorWhich() === 'live' || S.mirrorCap || S.sim)) {
+    // 重ねる側・表示する画像はパネルのボタンで分かるため、映像の上には出さない（眉・額にかからないよう、表示は短く少なくする）。
+    // パネルに無い撮影の時刻と、パネルからは分からない注意だけを出す
     const which = mirrorWhich();
-    chips.push(`<span class="pill">${S.mirror.basis === 'left' ? '右側を反転して左側に重ねています' : '左側を反転して右側に重ねています'}</span>`);
-    chips.push(`<span class="pill">${which === 'live' ? 'ライブ' : which === 'before' ? (S.mirrorCap ? `撮影画像（${hhmm(S.mirrorCap.time)}）` : '撮影画像') : `仮置きの結果（${hhmm(S.sim.cap.time)}）`}</span>`);
+    const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
+    if (mc) chips.push(`<span class="pill">${hhmm(mc.time)} 撮影</span>`);
     const hiddenSide = mirrorHiddenSide();
     if (hiddenSide) chips.push(`<span class="pill warn">${hiddenSide}側の修正は映りません</span>`);
-    const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
-    if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) {
-      chips.push(`<span class="pill warn">ズーム ${mc.zoom}× で撮影した画像を ${zoomRatio(mc).toFixed(2)} 倍にして重ねています（撮り直すとはっきりします）</span>`);
-    }
+    if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) chips.push('<span class="pill warn">ズーム違い：撮り直すとはっきりします</span>');
   }
   if (S.screen === 'sim' && S.sim) {
     if (S.before) chips.push('<span class="pill bad">修正前を表示中</span>');
