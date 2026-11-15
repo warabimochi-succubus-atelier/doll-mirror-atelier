@@ -1113,11 +1113,8 @@ function updateSimPanel() {
     $('#btn-relasso').textContent = p.copy ? '消す範囲を囲み直す' : '囲み直す';
     $('#btn-relasso').title = p.copy ? 'コピー先に、もとからあるメイクを薄くする・消す範囲を囲み直します' : '選択範囲を囲み直します';
     $('#btn-relasso').hidden = !!p.copy && p.origin === 'keep';
-    const notes = [];
-    // 短く1文にする（長いと、パーツを選ぶたびにパネルの高さが大きく変わり、読まれなくなるため。詳しくはマニュアル）
-    if (p.copy && p.origin === 'keep') notes.push('コピー先のもとのメイクは「メイク」で薄く・消せます');
-    else if (p.copy) notes.push(`黄色の点線：もとのメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲`);
-    $('#part-note').textContent = notes.join(' ');
+    // 「メイク」タブの中で、コピー先の黄色の点線が何の範囲かを1行で示す（「残す」では点線を出さないため空にする）
+    $('#part-note').textContent = p.copy && p.origin !== 'keep' ? `黄色の点線：もとのメイクを${p.origin === 'erase' ? '消す' : '薄くする'}範囲` : '';
   }
   renderChips();
 }
