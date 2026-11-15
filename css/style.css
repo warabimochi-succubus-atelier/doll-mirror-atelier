@@ -96,6 +96,8 @@ button, select, input[type="range"], label { touch-action: manipulation; }
 @media (orientation: landscape) and (min-width: 640px) {
   .body { flex-direction: row; }
   .body > .panel { width: min(380px, 42vw); max-height: none; border-top: 0; border-left: 1px solid var(--line); }
+  /* 仮置きの高さの上限（縦向き用。下の body[data-screen="sim"] .panel）のほうが詳細度が高いため、横向きでは明示して外す */
+  body[data-screen="sim"] .body > .panel { max-height: none; }
 }
 
 /* ---- 映像の領域 ---- */
