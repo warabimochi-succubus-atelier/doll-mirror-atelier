@@ -188,6 +188,10 @@ export const cam = {
     const w = Math.round(c.sw * s), h = Math.round(c.sh * s);
     const cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
+    // willReadFrequently は付けない（GPU の Canvas のままにする）。仮置きのメイク成分の抽出で getImageData を呼ぶたびに
+    // Chrome が「付けたほうが速い」と警告するが、付けると画面に描くたびの時間が増える。PC で 2160×3840 の画像を測ると、
+    // 画面への描画は 0.95ms → 2.6ms（ドラッグ中は毎コマ）、範囲の読み出しは 2.7ms → 0.5ms（抽出のときだけ。
+    // 抽出全体は眉で約 30ms、大きいチークで約 200ms のため、読み出しの差はその 1〜10%）。毎コマの描画を優先する
     cv.getContext('2d').drawImage(this.video, c.sx, c.sy, c.sw, c.sh, 0, 0, w, h);
     return cv;
   },

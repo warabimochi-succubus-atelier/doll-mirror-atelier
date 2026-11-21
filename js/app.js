@@ -1110,6 +1110,7 @@ function updateSimPanel() {
     // hidden（場所ごと消える）ではなく見えなくするだけにし、領域の高さを一番高いタブに揃える（style.css の .tab-stack）
     $$('#part-ctl [data-tab]').forEach((el) => { el.classList.toggle('off', el.dataset.tab !== S.simTab); });
     $('#origin-lbl').textContent = p.copy ? 'コピー先のメイク' : '元のメイク';
+    $('#feather').max = sim.featherMax; // 撮影画像の大きさで変わる（value より先に決める）
     $('#feather').value = p.feather;
     $('#strength').value = Math.round(p.strength * 100);
     const cs = copySide(p);

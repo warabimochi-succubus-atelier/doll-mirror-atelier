@@ -2,6 +2,7 @@
   "name": "Doll Mirror Atelier",
   "short_name": "Mirror Atelier",
   "description": "固定したドールヘッドをカメラで映し、左右差の確認と修正のシミュレーションを行うドールメイク用アトリエツール",
+  "id": "./index.html",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

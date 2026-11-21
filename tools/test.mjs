@@ -67,6 +67,17 @@ test('パーツの名前：囲んだ側と、その側で空いている番号',
   assert.equal(sim.addPart(box(200, 300)).name, '左1');
 });
 
+test('境界のぼかし：上限は撮影画像の大きさに合わせ、初めの値は上限を超えない', () => {
+  const small = new Sim(cap());
+  assert.equal(small.featherMax, 40);
+  const big = new Sim({ ...cap(), w: 2160, h: 3840 });
+  assert.equal(big.featherMax, 115);
+  const cheek = big.addPart(box(500, 2300, 400)); // 高さ 800px：12% は 96
+  assert.equal(cheek.feather, 96);
+  const huge = big.addPart(box(1500, 2000, 800)); // 高さ 1600px：12% は 192 → 上限 115
+  assert.equal(huge.feather, 115);
+});
+
 test('左右コピー：反対側の位置に作られ、中央はコピーできない', () => {
   const sim = new Sim(cap());
   const p = sim.addPart(box(300, 400));

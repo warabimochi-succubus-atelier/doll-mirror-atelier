@@ -39,6 +39,12 @@ export class Sim {
   /** 中心線からこの距離より近いものを中央とみなす（フレームガイドの楕円の横の半径の 1/10） */
   get centerHalf() { return ((this.cap.guides.frame * this.cap.h) / 2) * IM.FRAME_ASPECT * 0.1; }
   get hasContent() { return this.parts.length > 0; }
+  /**
+   * 境界のぼかし幅（画素）の上限。ぼかし幅は撮影画像の画素で持つため、上限も撮影画像の大きさに合わせる
+   * （長辺の 3%。長辺 1280px 程度までは 40。4K〔長辺 3840px〕では 115）。高解像度の画像で、大きく囲んだパーツの
+   * 初めのぼかし幅がスライダーの上限を超えないように
+   */
+  get featherMax() { return Math.max(40, Math.round(Math.max(this.cap.w, this.cap.h) * 0.03)); }
   part(id) { return this.parts.find((p) => p.id === id) || null; }
   get selPart() { return this.part(this.sel); }
 
@@ -89,7 +95,7 @@ export class Sim {
   }
   addPart(poly) {
     const p = {
-      id: seq++, name: '', side: null, no: 0, visible: true, poly, feather: Math.max(3, Math.round(G.bbox(poly).h * 0.12)), strength: 0.5,
+      id: seq++, name: '', side: null, no: 0, visible: true, poly, feather: G.clamp(Math.round(G.bbox(poly).h * 0.12), 3, this.featherMax), strength: 0.5,
       origin: 'fade', t: { tx: 0, ty: 0, rot: 0, sl: 1, st: 1 }, pivot: null, copy: null, destAuto: false, _ex: null, _ox: null,
     };
     this.setSide(p, this.sideOfPoly(poly));
