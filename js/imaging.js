@@ -247,7 +247,7 @@ export function extract(src, poly, feather, strength) {
     ld[j + 3] = fd[j + 3] = ed[j + 3] = a * 255;
   }
   const put = (d) => { const c = canvas(w, h); ctx2d(c).putImageData(d, 0, 0); return c; };
-  return { x: x0, y: y0, w, h, layer: put(L), fade: put(F), erase: put(E), skin };
+  return { x: x0, y: y0, w, h, layer: put(L), fade: put(F), erase: put(E) };
 }
 function boxBlur(src, w, h, r) {
   const tmp = new Float32Array(src.length), out = new Float32Array(src.length), d = 2 * r + 1;

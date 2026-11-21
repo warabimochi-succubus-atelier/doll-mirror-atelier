@@ -408,7 +408,6 @@ function drawLive() {
   ctx.setTransform(...V);
   ctx.drawImage(v, c.sx, c.sy, c.sw, c.sh, 0, 0, fw, fh);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  S.live = { V, fw, fh };
   const a = settings.assist;
 
   if (S.screen === 'home') {
@@ -489,11 +488,18 @@ function runChecks(c) {
   S.checks.t = now;
   const a = settings.assist;
   if (!a.light && !a.sharp) { renderChips(); return; }
-  const s = Math.min(1, 400 / Math.max(c.sw, c.sh));
-  checkCanvas.width = Math.round(c.sw * s); checkCanvas.height = Math.round(c.sh * s);
-  checkCanvas.getContext('2d', { willReadFrequently: true }).drawImage(cam.video, c.sx, c.sy, c.sw, c.sh, 0, 0, checkCanvas.width, checkCanvas.height);
-  S.checks.light = a.light ? IM.lightBalance(checkCanvas, checkCanvas.width, checkCanvas.height, { angle: settings.angle, frame: settings.frame }) : 0;
-  S.checks.sharp = a.sharp ? IM.sharpness(checkCanvas, frameRect(checkCanvas.width, checkCanvas.height)) : null;
+  if (a.light) {
+    const s = Math.min(1, 400 / Math.max(c.sw, c.sh));
+    checkCanvas.width = Math.round(c.sw * s); checkCanvas.height = Math.round(c.sh * s);
+    checkCanvas.getContext('2d', { willReadFrequently: true }).drawImage(cam.video, c.sx, c.sy, c.sw, c.sh, 0, 0, checkCanvas.width, checkCanvas.height);
+    S.checks.light = IM.lightBalance(checkCanvas, checkCanvas.width, checkCanvas.height, { angle: settings.angle, frame: settings.frame });
+  } else S.checks.light = 0;
+  // 鮮明さは、撮影時のチェック（capture）と同じ解像度で判定するため、縮小した画像ではなく映像から直接求める
+  // （判定の値は画像の縮め方で変わるため。表示では出ないのに撮影すると「ぼやけています」と出る食い違いを防ぐ）
+  if (a.sharp) {
+    const fr = frameRect(c.sw, c.sh);
+    S.checks.sharp = IM.sharpness(cam.video, { ...fr, x: fr.x + c.sx, y: fr.y + c.sy });
+  } else S.checks.sharp = null;
   renderChips();
 }
 function renderChips() {
@@ -576,7 +582,8 @@ $('#btn-mirror').addEventListener('click', () => openMirror());
 $('#btn-sim').addEventListener('click', () => openSim());
 
 // ---------------- 水準器 ----------------
-const level = { roll: 0, pitch: 0, seen: false, on: false };
+// on：センサーの値を受け取っている、seen：値が届いた、none：値が届かない（センサーが無い）、granted：iOS で利用が許可された
+const level = { roll: 0, pitch: 0, seen: false, on: false, none: false, granted: false, timer: 0 };
 const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 function onMotion(e) {
   const a = e.accelerationIncludingGravity;
@@ -590,18 +597,29 @@ function onMotion(e) {
   level.roll = level.seen ? level.roll * 0.8 + roll * 0.2 : roll;
   level.pitch = level.seen ? level.pitch * 0.8 + pitch * 0.2 : pitch;
   level.seen = true;
+  level.none = false; // 最初の値が遅れて届いた場合も表示する
 }
 function startLevel() {
   if (level.on) return;
-  level.on = true;
+  level.on = true; level.seen = false; level.none = false;
   window.addEventListener('devicemotion', onMotion);
-  setTimeout(() => { if (!level.seen) level.none = true; }, 1500);
+  clearTimeout(level.timer);
+  level.timer = setTimeout(() => { if (level.on && !level.seen) level.none = true; }, 1500);
+}
+/** 顔位置設定を離れたら、センサーの値を受け取るのをやめる（電池のため） */
+function stopLevel() {
+  if (!level.on) return;
+  level.on = false;
+  window.removeEventListener('devicemotion', onMotion);
+  clearTimeout(level.timer);
 }
 function updateLevel() {
   const el = $('#level'), ask = $('#level-ask');
   // 水準器はスタンドの設置に使うため、顔位置設定に出す
   const want = settings.assist.level && S.screen === 'face';
-  const needAsk = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' && !level.on;
+  if (!want) stopLevel();
+  // iOS は、許可をユーザーの操作で求める（一度許可されたら、開いている間は尋ね直さない）
+  const needAsk = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' && !level.granted;
   ask.hidden = !(want && needAsk);
   if (want && !needAsk && !level.on && 'DeviceMotionEvent' in window) startLevel();
   el.hidden = !(want && level.seen && !level.none);
@@ -615,7 +633,7 @@ function updateLevel() {
 $('#level-ask').addEventListener('click', async () => {
   try {
     const r = await DeviceMotionEvent.requestPermission();
-    if (r === 'granted') startLevel();
+    if (r === 'granted') { level.granted = true; startLevel(); }
     else toast('モーションセンサーが許可されなかったため、水準器は使えません');
   } catch { toast('水準器を使えませんでした'); }
 });
@@ -644,7 +662,6 @@ $$('[data-angle]').forEach((b) => b.addEventListener('click', () => {
 }));
 $('#btn-angle0').addEventListener('click', () => { settings.angle = 0; save(); updateFace(); });
 
-// ---------------- 顔位置設定の表示（拡大・移動） ----------------
 // ---------------- 顔位置設定・ミラーの表示（拡大・移動） ----------------
 const FACE_ZOOM_MAX = 8;
 /** 今の画面の表示の拡大・移動（顔位置設定とミラーだけ。それ以外は null） */
@@ -1044,7 +1061,7 @@ function toPivotSpace(p, q) {
   return G.ap(G.inv(M), q);
 }
 
-async function finishLasso() {
+function finishLasso() {
   const sim = S.sim, mode = S.mode;
   const poly = G.simplify(G_.lasso || [], 2 / S.view.s);
   G_.lasso = null;
@@ -1068,7 +1085,7 @@ async function finishLasso() {
   // 名前は囲んだ位置（中心線のどちら側か）から自動で付ける（例：右1）。
   // 追加したパーツは選んだ状態でパネルに出るため、トーストは出さない（左右コピーも同じ）
   sim.begin();
-  const p = sim.addPart(poly);
+  sim.addPart(poly);
   updateSimPanel(); S.dirty = true;
 }
 

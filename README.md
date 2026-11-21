@@ -109,6 +109,8 @@ sw.js                 Service Worker（オフライン用。新しい版が届�
 tools/dev-server.py   開発用のサーバー（キャッシュさせずに配信する）
 tools/demo-head.svg   開発用の映像（?demo）
 tools/make-icons.py   アイコンの書き出し
+tools/test.mjs        座標計算と仮置き（取り消し・名前・左右コピー）のテスト（node --test tools/test.mjs）
+mock/index.html       初期の画面モック（検討用。用語・画面は今のアプリと違う。アプリからはリンクしていない）
 LICENSE               MIT License
 NOTICE.md             ロゴ・アイコンの権利について
 ```

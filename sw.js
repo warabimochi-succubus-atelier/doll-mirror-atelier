@@ -7,7 +7,7 @@ const CACHE_PREFIX = 'dma-';
 const CACHE = `${CACHE_PREFIX}${APP_VERSION}`;
 const ASSETS = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png', './icons/favicon-32.png', './icons/favicon.ico', './icons/apple-touch-icon.png',
+  './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-192.png', './icons/icon-maskable-512.png', './icons/favicon-32.png', './icons/favicon.ico', './icons/apple-touch-icon.png',
   './images/author-logo.webp',
   './js/version.js', './js/app.js', './js/settings.js', './js/geom.js', './js/imaging.js', './js/camera.js', './js/sim.js', './js/ui.js',
 ];

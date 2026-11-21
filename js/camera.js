@@ -57,21 +57,30 @@ export const cam = {
   /** 今のコマ数（カメラが返した値。返さない端末では null） */
   get actualFps() { const f = this.track?.getSettings?.().frameRate; return f ? Math.round(f) : null; },
 
+  /** 起動・停止のたびに増やす番号。起動の途中で止められた（アプリを離れた等）かを、await から戻るたびに確かめる */
+  gen: 0,
+
   async start() {
     if (this.state === 'starting' || this.state === 'live') return;
     if (DEMO) { await this.startDemo(); return; }
     if (!navigator.mediaDevices?.getUserMedia) { this.setState('nocam', 'このブラウザはカメラに対応していません'); return; }
     this.setState('starting');
+    const gen = ++this.gen, stale = () => gen !== this.gen;
+    let stream = null;
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, ...videoSpec(this.fps) } });
-      await this.useSingleLens();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, ...videoSpec(this.fps) } });
+      if (!stale()) stream = await this.useSingleLens(stream);
     } catch (e) {
+      if (stale()) { stream?.getTracks().forEach((t) => t.stop()); return; } // 止められた後の失敗は知らせない
       const name = e?.name || '';
       if (name === 'NotAllowedError' || name === 'SecurityError') this.setState('denied');
       else if (name === 'NotFoundError' || name === 'OverconstrainedError') this.setState('nocam', 'カメラが見つかりません');
       else this.setState('error', String(e?.message || e));
       return;
     }
+    // 許可を待っている間などにアプリを離れて止められた場合は、届いた映像を止めて終える（裏でカメラを動かし続けない）
+    if (stale()) { stream.getTracks().forEach((t) => t.stop()); return; }
+    this.stream = stream;
     this.track = this.stream.getVideoTracks()[0];
     this.label = this.track.label || '';
     const caps = this.track.getCapabilities?.() || {};
@@ -79,7 +88,9 @@ export const cam = {
     this.video.srcObject = this.stream;
     try { await this.video.play(); } catch { /* 自動再生が止められた場合も、映像が来れば表示する */ }
     await new Promise((r) => (this.video.readyState >= 2 ? r() : this.video.addEventListener('loadeddata', r, { once: true })));
+    if (stale()) return; // ここから先で止められた場合は、stop() が映像を止めている
     await this.setZoom(this.zoom);
+    if (stale()) return;
     this.setState('live');
     this.keepAwake();
   },
@@ -90,28 +101,30 @@ export const cam = {
    * レンズごとに位置がずれているため、そのたびに映像が上下にずれ、見下ろすような画角になって戻る。
    * ヘッドとスタンドを固定して中心線に合わせる使い方では、映像が動かないことを優先する
    */
-  async useSingleLens() {
-    const cur = this.stream.getVideoTracks()[0];
-    if (!MULTI_LENS.test(cur?.label || '')) return;
+  async useSingleLens(stream) {
+    const cur = stream.getVideoTracks()[0];
+    if (!MULTI_LENS.test(cur?.label || '')) return stream;
     let id = '';
     try {
       const list = await navigator.mediaDevices.enumerateDevices();
       const back = list.filter((d) => d.kind === 'videoinput' && /back|rear|背面/i.test(d.label) && !MULTI_LENS.test(d.label) && !OTHER_LENS.test(d.label));
       id = back[0]?.deviceId || '';
-    } catch { return; }
-    if (!id || id === cur.getSettings?.().deviceId) return;
+    } catch { return stream; }
+    if (!id || id === cur.getSettings?.().deviceId) return stream;
     let s;
-    try { s = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: { exact: id }, ...videoSpec(this.fps) } }); } catch { return; /* 替えられなければ、まとめたカメラのまま使う */ }
-    this.stream.getTracks().forEach((t) => t.stop());
-    this.stream = s;
+    try { s = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId: { exact: id }, ...videoSpec(this.fps) } }); } catch { return stream; /* 替えられなければ、まとめたカメラのまま使う */ }
+    stream.getTracks().forEach((t) => t.stop());
+    return s;
   },
 
   /** 開発用：カメラの代わりに、図のヘッド（tools/demo-head.svg）を映像として流す（index.html?demo） */
   async startDemo() {
     this.setState('starting');
+    const gen = ++this.gen;
     const img = new Image();
     img.src = 'tools/demo-head.svg';
-    await img.decode();
+    try { await img.decode(); } catch { this.setState('error', 'デモ映像（tools/demo-head.svg）を読み込めませんでした'); return; }
+    if (gen !== this.gen) return;
     const c = document.createElement('canvas');
     c.width = 1080; c.height = 1920;
     const x = c.getContext('2d');
@@ -126,11 +139,14 @@ export const cam = {
     this.video.srcObject = this.stream;
     try { await this.video.play(); } catch { /* 何もしない */ }
     await new Promise((r) => (this.video.readyState >= 2 ? r() : this.video.addEventListener('loadeddata', r, { once: true })));
+    if (gen !== this.gen) return;
     await this.setZoom(this.zoom);
+    if (gen !== this.gen) return;
     this.setState('live');
   },
 
   stop() {
+    this.gen++; // 起動の途中なら、その起動を取りやめる
     clearInterval(this.demoTimer);
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null; this.track = null;
@@ -181,8 +197,11 @@ export const cam = {
   async keepAwake() {
     if (!this.wakeSupported || this.wakeLock) return;
     try {
-      this.wakeLock = await navigator.wakeLock.request('screen');
-      this.wakeLock.addEventListener('release', () => { this.wakeLock = null; });
+      const lock = await navigator.wakeLock.request('screen');
+      // 許可を待っている間にカメラを止めた場合は、すぐ手放す
+      if (this.state !== 'live') { lock.release().catch(() => {}); return; }
+      this.wakeLock = lock;
+      lock.addEventListener('release', () => { if (this.wakeLock === lock) this.wakeLock = null; });
     } catch { /* 電池残量が少ない場合などは許可されない */ }
   },
   releaseWake() { this.wakeLock?.release().catch(() => {}); this.wakeLock = null; },
