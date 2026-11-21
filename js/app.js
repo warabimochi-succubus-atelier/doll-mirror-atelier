@@ -62,6 +62,8 @@ function show(s) {
   });
   $('#bar-title').textContent = TITLES[s] || '';
   if (prev !== s) S.capturing++; // 待ち時間中に画面を移ったら撮影をやめる
+  // 顔位置設定を離れるとき（「‹」・戻る・設置ガイドへ移る等、どの方法でも）は、変えた角度を撮影画像に適用する
+  if (prev === 'face' && s !== 'face') applyFaceAngle();
   S.dirty = true;
   S.mode = null;
   if (s === 'face') { S.face.angle0 = settings.angle; S.startupNote = false; S.resumeNote = false; updateFace(); }
@@ -92,12 +94,8 @@ function go(s) {
   history.pushState({ s }, '');
   show(s);
 }
-async function back(fromPop = false) {
+function back(fromPop = false) {
   if (S.screen === 'home') return;
-  if (S.screen === 'face' && !(await leaveFace())) {
-    if (fromPop) history.pushState({}, '');
-    return;
-  }
   const prev = stack.pop() || 'home';
   if (!fromPop) { popSilently = true; history.back(); }
   show(prev);
@@ -701,18 +699,19 @@ $('#btn-face-done').addEventListener('click', async () => {
 });
 
 /**
- * 顔位置設定を閉じる前：角度を変えた場合は、既にある撮影画像にもいつも適用する（ミラーの反転・左右コピーの位置を計算し直す）。
+ * 顔位置設定を離れるとき（show() から呼ぶ）：角度を変えた場合は、既にある撮影画像にもいつも適用する（ミラーの反転・左右コピーの位置を計算し直す）。
+ * 設置ガイドへ移ってから戻る場合も、離れる時点で適用する（戻ったときに開いたときの角度を今の角度にするため、後からでは差が分からない）。
  * ヘッドを動かしたために角度を直した場合に備え、ミラーを開いたときに元の位置に戻すよう案内する（「撮影して完了」では撮り直すため案内しない）。
- * 適用するかを選ぶ確認は出さない（理由を思い出して選ぶのが難しく、角度の差は小さいため）。false なら閉じない
+ * 適用するかを選ぶ確認は出さない（理由を思い出して選ぶのが難しく、角度の差は小さいため）
  */
-async function leaveFace() {
+function applyFaceAngle() {
   const a0 = S.face.angle0, a1 = settings.angle;
-  if (Math.abs(a0 - a1) < 0.001 || !(S.mirrorCap || S.sim)) return true;
+  if (Math.abs(a0 - a1) < 0.001 || !(S.mirrorCap || S.sim)) return;
   if (S.mirrorCap) S.mirrorCap.angle = a1;
-  if (S.sim) S.sim.setAngle(a1);
+  if (S.sim && Math.abs(S.sim.cap.angle - a1) > 0.001) S.sim.setAngle(a1);
+  S.face.angle0 = a1;
   // トーストは出さない（ミラーを開いたときの、元の位置に戻す案内で分かる）
   S.headMoved = true;
-  return true;
 }
 
 // ======================================================================

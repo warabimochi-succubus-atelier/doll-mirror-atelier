@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 640" width="1080" height="1920">
-  <!-- 開発用：カメラの無い環境で動作を確かめるための映像（index.html?demo で使う）。画面モックのヘッドの図と同じ -->
+  <!-- 開発用：カメラの無い環境で動作を確かめるための映像（index.html?demo で使う） -->
   <defs>
     <radialGradient id="g-skin" cx="45%" cy="38%" r="70%">
       <stop offset="0" stop-color="#fbe9e1"/><stop offset=".7" stop-color="#f1d3c8"/><stop offset="1" stop-color="#dfb8ab"/>
