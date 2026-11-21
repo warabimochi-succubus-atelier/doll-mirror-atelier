@@ -11,7 +11,9 @@ const ASSETS = [
   './images/author-logo.webp',
   './js/version.js', './js/app.js', './js/settings.js', './js/geom.js', './js/imaging.js', './js/camera.js', './js/sim.js', './js/ui.js',
 ];
-self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))));
+// ブラウザのキャッシュ（GitHub Pages は 10 分）を通さずにサーバーから取る。公開した直後に更新したとき、
+// 新しい版のキャッシュに古いファイルが入り、オフラインで古い画面が出るのを防ぐ
+self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' }))))));
 self.addEventListener('activate', (e) => e.waitUntil(
   caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
 ));

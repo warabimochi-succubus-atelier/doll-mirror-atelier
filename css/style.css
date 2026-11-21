@@ -70,7 +70,7 @@ button, select, input[type="range"], label { touch-action: manipulation; }
 .brand-icon { border-radius: 8px; display: block; flex: none; }
 .brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .brand-name { font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
-.brand-sub { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-2); line-height: 1; }
+.brand-sub { display: flex; align-items: center; gap: 3px; font-size: 12px; color: var(--ink-2); line-height: 1; }
 .brand-sub .info-icon { flex: none; }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* 戻る：見た目は小さい矢印のまま、押せる範囲を 44px 角にする（左は画面の端に寄せる） */
@@ -141,7 +141,7 @@ button, select, input[type="range"], label { touch-action: manipulation; }
 .level .bubble::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 1px dashed rgba(255,255,255,.7); }
 .level .bubble i { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #ffd36b; transition: transform .1s; }
 .level.flat .bubble i { background: #6fd39a; }
-.level-val { font-size: 11px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
+.level-val { font-size: 12px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
 .level-ask { left: 10px; bottom: 10px; cursor: pointer; min-height: 40px; }
 .banner {
   left: 10px; right: 10px; bottom: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.96); color: #3a2e32;
@@ -210,7 +210,7 @@ a.btn { color: inherit; text-decoration: none; }
 .btn-l { min-height: 44px; }
 /* 押している間だけ効くボタン：名前の下に小さく「押している間」と添える */
 .btn.hold-2 { flex-direction: column; gap: 0; line-height: 1.2; }
-.btn.hold-2 small { font-size: 11px; opacity: .75; }
+.btn.hold-2 small { font-size: 12px; opacity: .75; }
 /* パーツの名前は折り返さず、文字の幅をいつも取る（幅が足りないときに1文字ずつ縦に並び、表示のスイッチに重なっていたため）。
    それでも行に入らないときは、表示のスイッチ・重ね順・削除を次の行に送る */
 #part-name { flex: 1 0 auto; white-space: nowrap; }
@@ -227,7 +227,7 @@ a.btn { color: inherit; text-decoration: none; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button.on { background: var(--accent); color: #fff; }
 .seg button:disabled { opacity: .4; cursor: not-allowed; }
-.seg button small { display: block; font-size: 11px; opacity: .85; }
+.seg button small { display: block; font-size: 12px; opacity: .85; }
 /* タブ（仮置きのパネル）：選ぶ項目（塗りつぶし）と見分けられるよう、選んでいるタブは淡い色にする */
 #sim-tab button.on { background: var(--accent-2); color: var(--accent); font-weight: 700; }
 /* 長さの違う名前（ライブ／撮影画像／シミュレーション）を1行に収めるため、幅を文字の長さに合わせて分ける */
@@ -245,7 +245,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; min-width: 0; heig
 .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .nav-text b { font-size: 14px; }
 .nav-sub .nav-text b { font-size: 13px; }
-.nav-text small { font-size: 11.5px; font-weight: 400; opacity: .8; line-height: 1.35; white-space: normal; }
+.nav-text small { font-size: 12px; font-weight: 400; opacity: .8; line-height: 1.35; white-space: normal; }
 /* 続けて押す微調整のボタンは、隣を押し間違えないように大きく、間を空ける */
 .fine { display: flex; gap: 8px; flex-wrap: nowrap; flex: none; }
 .fine .btn { padding: 4px 8px; font-size: 13px; min-width: 44px; min-height: 40px; }
@@ -267,7 +267,7 @@ select { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; ba
 .page { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: max(16px, env(safe-area-inset-bottom)); max-width: 720px; width: 100%; margin: 0 auto; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
 .card h2 { margin-bottom: 6px; }
-.badge { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-weight: 400; }
+.badge { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-weight: 400; }
 .set { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
 .card h2 + .set { border-top: 0; }
 .set .grow small { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.4; }
@@ -309,11 +309,11 @@ ul.plain { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-2); 
 .about-ver { font-size: 12px; color: var(--ink-2); }
 .about-desc { color: var(--ink-2); font-size: 13px; margin: 10px 0 0; }
 .about-author { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
-.about-label { font-size: 11px; color: var(--ink-2); letter-spacing: .1em; }
+.about-label { font-size: 12px; color: var(--ink-2); letter-spacing: .1em; }
 .about-logo { margin: 8px auto 6px; background: #fff; border-radius: 14px; padding: 4px; max-width: 360px; }
 .about-logo img { display: block; width: 100%; height: auto; }
 .about-name { font-weight: 700; }
-.about-license { margin: 14px 0 0; color: var(--ink-2); font-size: 11px; line-height: 1.7; }
+.about-license { margin: 14px 0 0; color: var(--ink-2); font-size: 12px; line-height: 1.7; }
 .about-license a { color: inherit; }
 .about-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
 .about-links .btn { text-decoration: none; color: var(--ink); }

@@ -1021,9 +1021,9 @@ function endPointer(e) {
   const sim = S.sim;
   if (!sim) return;
   if (pts.size === 1 && (G_.kind === 'pinch' || G_.kind === 'partPinch')) {
-    // 2本指のうち1本を離した：残りの指では画面の移動だけにする
+    // 2本指のうち1本を離した：残りの指では画面の移動だけにする（顔位置設定・ミラーと同じ。パーツは動かさない）
     if (G_.kind === 'partPinch') { updateSimPanel(); }
-    G_.kind = 'none'; G_.p0 = null;
+    G_.kind = 'pan'; G_.p0 = null; G_.last = [...pts.values()][0];
     return;
   }
   if (pts.size > 0) return;
