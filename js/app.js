@@ -46,6 +46,8 @@ const lineColorOf = (cv) => {
 
 const cv = $('#cv'), ctx = cv.getContext('2d');
 cam.init($('#video'));
+// 端末の向きを変えると、映像の縦横が入れ替わる。撮影画像と向きが違うことを映像の上に出し直す
+$('#video').addEventListener('resize', () => { renderChips(); S.dirty = true; });
 
 // ======================================================================
 // 画面の切り替え
@@ -413,7 +415,7 @@ function drawLive() {
     if (a.center) drawGuides(V, fw, fh, settings.angle);
   } else if (S.screen === 'face') {
     // 元の位置：前回の撮影画像の輪郭（ガイドの下に描く）
-    if (a.edge && S.lastCap) drawCapEdges(S.lastCap, V, fw, settings.edgeAlpha);
+    if (a.edge && S.lastCap && !orientDiffers(S.lastCap)) drawCapEdges(S.lastCap, V, fw, settings.edgeAlpha);
     drawFrameGuide(V, fw, fh, settings.angle);
     drawGuides(V, fw, fh, settings.angle);
     // 照明の左右差・ピンぼけの判定は、設置して撮影する顔位置設定でだけ行う（ホームでは行わず、端末の発熱を抑える）
@@ -433,6 +435,15 @@ function capToFrame(cap, fw, fh) {
 }
 /** 今のズーム倍率 ÷ 撮影したときのズーム倍率 */
 const zoomRatio = (cap) => (cap.zoom && cam.zoom ? cam.zoom / cap.zoom : 1);
+/**
+ * 撮影画像と今の映像で縦横が違うか（撮影した後に端末の向きを変えた・スタンドに付け直した等）。
+ * 違う場合は、撮影画像を今の映像の幅に合わせると大きくずれて重ならないため、重ねて表示せず、撮り直すよう知らせる
+ */
+const orientDiffers = (cap) => {
+  if (!cam.ready) return false;
+  const c = cam.crop();
+  return (cap.w > cap.h) !== (c.sw > c.sh);
+};
 
 function drawCapEdges(cap, V, fw, alpha) {
   ctx.save();
@@ -459,6 +470,8 @@ function drawMirror(V, fw, fh) {
   } else {
     const cap = which === 'after' ? S.sim.cap : S.mirrorCap;
     if (!cap) return;
+    // 縦横が違う撮影画像は重ねない（ライブ映像と中心線だけを出し、映像の上の表示で撮り直すよう知らせる）
+    if (orientDiffers(cap)) { if (settings.assist.center) drawGuides(V, fw, fh, settings.angle, false); return; }
     const img = which === 'after' ? S.sim.full() : cap.canvas;
     Vc = G.mul(V, capToFrame(cap, fw, fh)); w = cap.w; h = cap.h; angle = cap.angle;
     paint = settings.mirrorMode === 'edge'
@@ -509,7 +522,11 @@ function renderChips() {
     const a = settings.assist, l = S.checks.light;
     chips.push(`<span class="pill">中心線の角度 <b class="mono">${fmtAngle(settings.angle)}</b></span>`);
     // 重ねたまま忘れないよう、重ねている間は何をする表示かを出す
-    if (a.edge && S.lastCap) chips.push('<span class="pill">輪郭にヘッドを合わせてください</span>');
+    if (a.edge && S.lastCap) {
+      chips.push(orientDiffers(S.lastCap)
+        ? '<span class="pill warn">端末の向きが撮影時と違うため、輪郭を重ねられません</span>'
+        : '<span class="pill">輪郭にヘッドを合わせてください</span>');
+    }
     // 照明の左右差（l > 0：画面右側が明るい〔画面左側が暗い〕）とピンぼけ。撮影する前に直せるよう、顔位置設定で知らせる
     if (a.light && Math.abs(l) > IM.LIGHT_DIFF) chips.push(`<span class="pill warn">${l > 0 ? '左' : '右'}側が暗めです</span>`);
     if (a.sharp && S.checks.sharp != null && S.checks.sharp < IM.SHARP_MIN) chips.push('<span class="pill warn">ピンぼけ・ブレの可能性があります</span>');
@@ -521,7 +538,8 @@ function renderChips() {
     const which = mirrorWhich();
     const mc = which === 'after' ? S.sim.cap : which === 'before' ? S.mirrorCap : null;
     if (mc) chips.push(`<span class="pill">${hhmm(mc.time)} 撮影</span>`);
-    if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) chips.push('<span class="pill warn">ズーム違い：撮り直すとはっきりします</span>');
+    if (mc && orientDiffers(mc)) chips.push('<span class="pill warn">向きが違います：撮り直してください</span>');
+    else if (mc && Math.abs(zoomRatio(mc) - 1) > 0.01) chips.push('<span class="pill warn">ズーム違い：撮り直すとはっきりします</span>');
   }
   if (S.screen === 'sim' && S.sim) {
     if (S.before) chips.push('<span class="pill bad">修正前を表示中</span>');
