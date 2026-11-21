@@ -123,7 +123,6 @@ button, select, input[type="range"], label { touch-action: manipulation; }
   line-height: 1.5;
 }
 .pill.warn { background: rgba(185, 138, 36, .92); }
-.pill.good { background: rgba(61, 139, 99, .9); }
 .pill.bad { background: rgba(192, 80, 63, .92); }
 .chips-top { left: 10px; right: 64px; top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; pointer-events: none; }
 .chips-top .pill { white-space: normal; }
@@ -190,7 +189,6 @@ body[data-screen="sim"] .panel { max-height: 53%; }
 .lbl { font-size: 12px; color: var(--ink-2); white-space: nowrap; min-width: 64px; }
 .lbl.short { min-width: 36px; }
 .hint { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; line-height: 1.5; }
-.hint.warn { color: var(--ok); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface);
@@ -230,7 +228,7 @@ a.btn { color: inherit; text-decoration: none; }
 .seg button small { display: block; font-size: 12px; opacity: .85; }
 /* タブ（仮置きのパネル）：選ぶ項目（塗りつぶし）と見分けられるよう、選んでいるタブは淡い色にする */
 #sim-tab button.on { background: var(--accent-2); color: var(--accent); font-weight: 700; }
-/* 長さの違う名前（ライブ／撮影画像／シミュレーション）を1行に収めるため、幅を文字の長さに合わせて分ける */
+/* 長さの違う名前（ライブ／撮影画像／仮置き）を1行に収めるため、幅を文字の長さに合わせて分ける */
 #m-which button { flex: 1 1 auto; white-space: nowrap; }
 /* 押せる高さを広げる（つまみの見た目は変えない） */
 input[type=range] { accent-color: var(--accent); width: 100%; min-width: 0; height: 32px; margin: 0; }
@@ -249,10 +247,9 @@ input[type=range] { accent-color: var(--accent); width: 100%; min-width: 0; heig
 /* 続けて押す微調整のボタンは、隣を押し間違えないように大きく、間を空ける */
 .fine { display: flex; gap: 8px; flex-wrap: nowrap; flex: none; }
 .fine .btn { padding: 4px 8px; font-size: 13px; min-width: 44px; min-height: 40px; }
-.divider { height: 1px; background: var(--line); margin: 10px -14px; }
 select { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; background: var(--surface); max-width: 100%; }
 
-/* ---- シミュレーション ---- */
+/* ---- 仮置き ---- */
 .simbar { flex: none; display: flex; gap: 6px; align-items: center; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .simbar .hold { min-width: 72px; min-height: 40px; }
 .icon-btn { width: 44px; height: 40px; padding: 0; }
@@ -297,8 +294,6 @@ ul.plain { margin: 0; padding-left: 18px; font-size: 12px; color: var(--ink-2); 
 .choice:hover { border-color: var(--accent); }
 .choice b { display: block; font-size: 14px; }
 .choice span { font-size: 12px; color: var(--ink-2); }
-.choice.danger b { color: var(--bad); }
-.dlg-body select { width: 100%; font-size: 16px; padding: 8px; }
 .help-steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; }
 .help-steps > li { margin-bottom: 6px; }
 .help-steps ul { margin: 2px 0 0; padding-left: 16px; color: var(--ink-2); font-size: 12px; }

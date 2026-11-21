@@ -32,8 +32,8 @@ function placeToast(t) {
 
 /**
  * 選択肢のダイアログ
- * @param opt { title, html（説明。HTML）, choices: [{ value, label, desc, danger }], cancel（下のボタンの文字。省略で「キャンセル」、false で無し）, select: { options: [[value, label]], value } }
- * @returns {Promise<string|null>} 選んだ value（キャンセルは null）。select を指定した場合は { value, selected }
+ * @param opt { title, html（説明。HTML）, choices: [{ value, label, desc }], cancel（下のボタンの文字。省略で「キャンセル」） }
+ * @returns {Promise<string|null>} 選んだ value（キャンセルは null）
  */
 export function choose(opt) {
   const dlg = $('#dlg'), form = $('#dlg-form');
@@ -41,19 +41,16 @@ export function choose(opt) {
     <div class="dlg-body">
       <h2>${esc(opt.title)}</h2>
       ${opt.html || ''}
-      ${opt.select ? `<select id="dlg-select">${opt.select.options.map(([v, l, dis]) => `<option value="${esc(v)}" ${v === opt.select.value ? 'selected' : ''} ${dis ? 'disabled' : ''}>${esc(l)}</option>`).join('')}</select>` : ''}
-      ${(opt.choices || []).map((c) => `<button class="choice ${c.danger ? 'danger' : ''}" value="${esc(c.value)}"><b>${esc(c.label)}</b>${c.desc ? `<span>${esc(c.desc)}</span>` : ''}</button>`).join('')}
+      ${(opt.choices || []).map((c) => `<button class="choice" value="${esc(c.value)}"><b>${esc(c.label)}</b>${c.desc ? `<span>${esc(c.desc)}</span>` : ''}</button>`).join('')}
     </div>
     <div class="dlg-foot">
       <span class="grow"></span>
-      ${opt.cancel === false ? '' : `<button class="btn btn-ghost" value="">${esc(opt.cancel || 'キャンセル')}</button>`}
-      ${opt.ok ? `<button class="btn btn-primary" value="ok">${esc(opt.ok)}</button>` : ''}
+      <button class="btn btn-ghost" value="">${esc(opt.cancel || 'キャンセル')}</button>
     </div>`;
   return new Promise((resolve) => {
     const done = () => {
-      const v = dlg.returnValue || null;
       dlg.removeEventListener('close', done);
-      resolve(opt.select ? (v ? { value: v, selected: $('#dlg-select', form).value } : null) : v);
+      resolve(dlg.returnValue || null);
     };
     dlg.returnValue = '';
     dlg.addEventListener('close', done);
